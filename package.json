@@ -1,0 +1,34 @@
+{
+  "name": "2b2wts",
+  "version": "1.0.0",
+  "description": "rewrite of 2bored2wait",
+  "main": "lib/main.js",
+  "scripts": {
+    "postinstall": "npm run build",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rob9315/2b2wts.git"
+  },
+  "keywords": [
+    "queue",
+    "2b2t",
+    "2bored2wait",
+    "2b2w",
+    "minecraft",
+    "typescript"
+  ],
+  "author": "Rob9315",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "discord.js": "^12.5.3",
+    "everpolate": "^0.0.3",
+    "luxon": "^1.27.0",
+    "mcproxy": "git+https://github.com/rob9315/mcproxy.git",
+    "minecraft-protocol": "^1.25.0"
+  },
+  "devDependencies": {
+    "@types/luxon": "^1.26.5"
+  }
+}
