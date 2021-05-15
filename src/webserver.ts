@@ -11,8 +11,8 @@ const app = readFileSync('node_modules/particles.js/demo/js/app.js');
 
 export class WebServer {
   server?: Server;
-  ETA: 'None' | string = 'None';
-  queuePlace: 'None' | number = 'None';
+  ETA: 'None' | "NOW" | string = 'None';
+  queuePlace: 'None' | "FINISHED" | number = 'None';
   isInQueue: boolean = false;
   onStart: () => void;
   onStop: () => void;
