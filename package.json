@@ -23,10 +23,12 @@
   "license": "GPL-3.0",
   "dependencies": {
     "discord.js": "^12.5.3",
+    "dotenv": "^9.0.2",
     "everpolate": "^0.0.3",
     "luxon": "^1.27.0",
     "mcproxy": "git+https://github.com/rob9315/mcproxy.git",
-    "minecraft-protocol": "^1.25.0"
+    "minecraft-protocol": "^1.25.0",
+    "particles.js": "^2.0.0"
   },
   "devDependencies": {
     "@types/luxon": "^1.26.5"

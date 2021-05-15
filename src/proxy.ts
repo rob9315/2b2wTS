@@ -1,10 +1,11 @@
-import { Conn, defaultEvents } from 'mcproxy';
-import { Client, Server, createServer } from 'minecraft-protocol';
-import { ProxyOptions } from './config';
+import { Conn } from 'mcproxy';
+import { Client, Server, createServer, PacketMeta } from 'minecraft-protocol';
 import { Client as djsClient } from 'discord.js';
 import { WebServer } from './webserver';
 import { expandQueueData, log, logActivity, logErrorIfExists, setETA } from './util';
 import { DateTime } from 'luxon';
+
+import type { ProxyOptions } from './config';
 
 export class Proxy {
   server: Server;
@@ -19,6 +20,7 @@ export class Proxy {
 
   logActivity = logActivity.bind(this);
   setETA = setETA.bind(this);
+  log = log.bind(this);
 
   constructor(public options: ProxyOptions) {
     this.state = 'idle';
@@ -28,30 +30,41 @@ export class Proxy {
     }
     this.webserver = new WebServer(options.webserver, this);
     this.server = createServer(options.server);
-    this.server.on('login', this.onLogin);
+    this.server.on('login', this.onLogin.bind(this));
   }
   onLogin(client: Client) {
     if (this.options.config?.whitelist && client.uuid !== this.conn?.bot._client.uuid) {
       return client.end('whitelist is enabled and you are using the wrong account.');
     }
-    if (this.conn) return this.conn.link(client);
+    if (!!(this.conn?.bot?.entity as any)?.id) {
+      this.conn?.sendPackets(client);
+      this.conn?.link(client);
+      return;
+    }
     return client.end('problem with conn, are you not queuing?');
   }
   startQueuing() {
     this.state = 'auth';
-    this.conn = new Conn(this.options.botOptions, undefined, { events: this.events });
+    this.conn = new Conn(this.options.botOptions);
     this.conn.bot.once('login', () => {
       this.state = this.options.config?.is2b2t ? 'queue' : 'connected';
     });
+    this.conn.bot._client.on('end', this.end.bind(this));
+    this.conn.bot._client.on('error', this.end.bind(this));
+    this.conn.bot._client.on('packet', this.onPacketListener.bind(this));
     this.webserver.isInQueue = true;
   }
   stopQueuing() {
     this.state = 'idle';
-    this.conn?.disconnect();
-    this.conn = undefined;
+    this.stop();
   }
   reconnect() {
     this.state = 'reconnect';
+    this.stop();
+  }
+  private stop() {
+    this.clearCurrentTimeout();
+    this.webserver.isInQueue = false;
     this.conn?.disconnect();
     this.conn = undefined;
   }
@@ -105,60 +118,46 @@ export class Proxy {
       log(`Connection reset by 2b2t server. Reconnecting in ${this.options.config.reconnect.timeout}ms`);
       this.state = 'reconnect';
       this.setCurrentTimeout(() => {
-        //TODO! implement the pinging shit
+        //TODO! implement the pinging stuff
         this.startQueuing();
       }, this.options.config?.reconnect?.timeout);
+    } else this.stopQueuing();
+  }
+  onPacketListener(data: any, packetMeta: PacketMeta) {
+    switch (packetMeta.name) {
+      case 'playerlist_header':
+        if (this.state === 'queue') {
+          let prevQueuePlace = this.webserver.queuePlace;
+          let headermessage = JSON.parse(data.header);
+          try {
+            let queuePlace = headermessage.text.split('\n')[5].substring(25);
+            this.webserver.queuePlace = queuePlace === 'None' ? queuePlace : Number(queuePlace);
+          } catch (e) {
+            if (e instanceof TypeError) log("Reading position in queue from tab failed! Is the queue empty, or the server isn't 2b2t?");
+          }
+          if (this.options.config?.expandQueueData && prevQueuePlace === 'None' && this.webserver.queuePlace !== 'None') {
+            this.queueStartPlace = this.webserver.queuePlace;
+            this.queueStartTime = DateTime.local();
+          }
+          if (prevQueuePlace !== this.webserver.queuePlace) this.updateQueuePosition();
+        }
+        break;
+      case 'chat':
+        if (this.state === 'queue') {
+          let chatMessage = JSON.parse(data.message);
+          if (chatMessage.text === 'Connecting to the server...') {
+            if (this.options.config?.expandQueueData && !!this.queueStartPlace && !!this.queueStartTime) {
+              expandQueueData(this.queueStartPlace, this.queueStartTime);
+            }
+            if (this.webserver.restartQueue && !!this.conn?.pclient) {
+              this.reconnect();
+            } else {
+              this.state = 'connected';
+              this.updateQueuePosition();
+              this.logActivity('Queue is finished');
+            }
+          }
+        }
     }
   }
-  readonly events: typeof defaultEvents = [
-    {
-      event: 'packet',
-      listener: (data, packetMeta) => {
-        switch (packetMeta.name) {
-          case 'playerlist_header':
-            if (this.state === 'queue') {
-              let prevQueuePlace = this.webserver.queuePlace;
-              let headermessage = JSON.parse(data.header);
-              try {
-                let queuePlace = headermessage.text.split('\n')[5].substring(25);
-                this.webserver.queuePlace = queuePlace === 'None' ? queuePlace : Number(queuePlace);
-              } catch (e) {
-                if (e instanceof TypeError) log("Reading position in queue from tab failed! Is the queue empty, or the server isn't 2b2t?");
-              }
-              if (this.options.config?.expandQueueData && prevQueuePlace === 'None' && this.webserver.queuePlace !== 'None') {
-                this.queueStartPlace = this.webserver.queuePlace;
-                this.queueStartTime = DateTime.local();
-              }
-              if (prevQueuePlace !== this.webserver.queuePlace) this.updateQueuePosition();
-            }
-            break;
-          case 'chat':
-            if (this.state === 'queue') {
-              let chatMessage = JSON.parse(data.message);
-              if (chatMessage.text === 'Connecting to the server...') {
-                if (this.options.config?.expandQueueData && !!this.queueStartPlace && !!this.queueStartTime) {
-                  expandQueueData(this.queueStartPlace, this.queueStartTime);
-                }
-                if (this.webserver.restartQueue && !!this.conn?.pclient) {
-                  this.reconnect();
-                } else {
-                  this.state = 'connected';
-                  this.updateQueuePosition();
-                  this.logActivity("Queue is finished")
-                }
-              }
-            }
-        }
-      },
-    },
-    {
-      event: 'end',
-      listener: this.end,
-    },
-    {
-      event: 'error',
-      listener: this.end,
-    },
-    ...defaultEvents,
-  ];
 }

@@ -1,5 +1,5 @@
-import { BotOptions } from 'mineflayer';
-import { ServerOptions } from 'minecraft-protocol';
+import type { BotOptions } from 'mineflayer';
+import type { ServerOptions } from 'minecraft-protocol';
 
 export interface ProxyOptions {
   botOptions: BotOptions;

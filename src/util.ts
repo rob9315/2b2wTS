@@ -41,8 +41,8 @@ function getWaitTime(queueLength: number, queuePos: number) {
 }
 
 export async function log(this: any, message: string) {
-  process.stdout.write(`\033[F\n${message}\n$ ${line}`);
-  if (this.options?.config?.logging) appendFile('.2bored2wait', message, () => {});
+  process.stdout.write(`\x1B[F\n${message}\n$ ${line}`);
+  if (this?.options?.config?.logging) appendFile('.2bored2wait', message, () => {});
 }
 export function logActivity(this: Proxy, message: string){
   log(message);

@@ -1,7 +1,8 @@
-import { WebServerOptions } from './config';
 import { Server, createServer, IncomingMessage, ServerResponse } from 'http';
-import type { Proxy } from './proxy';
 import { readFileSync } from 'fs';
+
+import type { WebServerOptions } from './config';
+import type { Proxy } from './proxy';
 
 const html = readFileSync('webserver/index.html');
 const css = readFileSync('webserver/index.css');
@@ -18,9 +19,9 @@ export class WebServer {
   restartQueue: boolean = false;
   password: string;
   constructor(options: WebServerOptions | undefined, proxy: Proxy) {
-    if (options) this.server = createServer(this.handleRequest).listen(options.port, options.host);
-    this.onStart = proxy.startQueuing;
-    this.onStop = proxy.stopQueuing;
+    if (options) this.server = createServer(this.handleRequest.bind(this)).listen(options.port, options.host);
+    this.onStart = proxy.startQueuing.bind(proxy);
+    this.onStop = proxy.stopQueuing.bind(proxy);
     this.password = options?.password ?? '';
   }
   handleRequest(req: IncomingMessage, res: ServerResponse) {
