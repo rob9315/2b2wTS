@@ -5,7 +5,8 @@
   "main": "lib/main.js",
   "scripts": {
     "postinstall": "npm run build",
-    "build": "tsc"
+    "build": "tsc",
+    "start": "node lib/main.js"
   },
   "repository": {
     "type": "git",
