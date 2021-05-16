@@ -4,6 +4,7 @@
     "module": "commonjs",
     "sourceMap": true,
     "declaration": true,
+    "declarationMap": true,
     "strict": true,
     "noImplicitAny": true,
     "resolveJsonModule": true,
@@ -13,5 +14,6 @@
     "forceConsistentCasingInFileNames": true,
     "rootDir": "src/",
     "outDir": "lib/",
+    "lib": ["es6", "dom", "es2017"]
   }
 }
