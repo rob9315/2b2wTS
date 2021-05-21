@@ -18,7 +18,7 @@ export class WebServer {
   onStop: () => void;
   restartQueue: boolean = false;
   password: string;
-  constructor(options: WebServerOptions | undefined, proxy: Proxy) {
+  constructor(options: WebServerOptions | null, proxy: Proxy) {
     if (options) this.server = createServer(this.handleRequest.bind(this)).listen(options.port, options.host);
     this.onStart = proxy.startQueuing.bind(proxy);
     this.onStop = proxy.stopQueuing.bind(proxy);

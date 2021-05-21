@@ -1,15 +1,19 @@
 import { Proxy } from './proxy';
-import dtenv from 'dotenv';
 import { question } from './util';
+import { ProxyOptions } from './config';
+import dotenv from 'dotenv';
+import cfg from 'config';
+import { setup } from './setup';
 
-let { error } = dtenv.config();
-if (!!error) {
-  console.error(error);
-  process.exit(1);
-}
-
-const proxy = new Proxy(JSON.parse(process.env['NODE_CONFIG'] as string));
-
+try {
+  dotenv.config();
+} catch {}
 (async () => {
-  while (true) console.log(proxy.command(await question('$ ')));
+  if (process.argv.includes('config')) Object.assign(cfg, await setup(Object.assign(new ProxyOptions(), cfg.util.toObject(cfg))));
+
+  const proxy = new Proxy(Object.assign(new ProxyOptions(), cfg.util.toObject(cfg)));
+
+  (async () => {
+    while (true) console.log(proxy.command(await question('$ ')));
+  })();
 })();

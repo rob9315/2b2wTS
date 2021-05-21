@@ -36,21 +36,22 @@ export class Proxy {
 
   constructor(public options: ProxyOptions) {
     this.state = 'idle';
-    if (!!options.discordtoken) {
+    options.discord = !!options.discord && options.discord?.token !== '' ? options.discord : null;
+    if (!!options.discord) {
       this.discord = new djsClient({});
-      this.discord.login(options.discordtoken);
+      this.discord.login(options.discord.token);
       this.discord.on('message', onDiscordMessage.bind(this));
     }
     this.webserver = new WebServer(options.webserver, this);
-    this.server = createServer(options.server);
+    this.server = createServer(options.mcserver);
     this.server.on('login', this.onClientLogin.bind(this));
   }
   startQueuing() {
     this.clearCurrentTimeout();
     this.state = 'auth';
-    this.conn = new Conn(this.options.botOptions);
+    this.conn = new Conn(this.options.mcclient);
     this.conn.bot.once('login', () => {
-      this.state = this.options.config?.is2b2t ? 'queue' : 'connected';
+      this.state = this.options.mcclient.host === '2b2t.org' ? 'queue' : 'connected';
     });
     this.conn.bot._client.on('end', this.onClientEnd.bind(this));
     this.conn.bot._client.on('error', this.onClientEnd.bind(this));
@@ -72,14 +73,9 @@ export class Proxy {
     this.conn = undefined;
   }
   private updateQueuePosition() {
-    switch (true) {
-      case this.state === 'connected':
-        this.webserver.queuePlace = 'FINISHED';
-        this.webserver.ETA = 'NOW';
-        break;
-      default:
-        this.setETA();
-    }
+    if (this.state != 'connected') return this.setETA();
+    this.webserver.queuePlace = 'FINISHED';
+    this.webserver.ETA = 'NOW';
   }
   command(cmd: string): string {
     function preventAccidentalRestart(this: Proxy, cmd?: string): string | undefined {
@@ -114,7 +110,7 @@ export class Proxy {
           case /^play (\d|[0-1]\d|2[0-3]):[0-5]\d$/.test(cmd):
             if (!!(quitmsg = preventAccidentalRestart.bind(this)(cmd))) return quitmsg;
             this.state = 'timePlay';
-            this.setCurrentTimeout(this.timePlay.bind(this), this.options.config?.reconnect?.timeout ?? 30000, this.extraStateInformation);
+            this.setCurrentTimeout(this.timePlay.bind(this), this.options.extra?.reconnect?.timeout ?? 30000, this.extraStateInformation);
             return `Waiting to Queue until the estimated waiting time is right so that you can play at ${this.extraStateInformation?.toLocaleString(DateTime.DATETIME_FULL)}`;
           default:
             return 'Unknown Command, maybe try `help`';
@@ -136,11 +132,11 @@ export class Proxy {
     let queueLength = await util.getQueueLength();
     if (typeof queueLength != 'number') return this.startQueuing();
     if (time.diffNow().seconds < util.getWaitTime(queueLength, queueLength)) return this.startQueuing();
-    this.setCurrentTimeout(this.timePlay.bind(this), this.options.config?.reconnect?.timeout ?? 30000, time);
+    this.setCurrentTimeout(this.timePlay.bind(this), this.options.extra?.reconnect?.timeout ?? 30000, time);
   }
 
   private onClientLogin(this: Proxy, client: Client) {
-    if (this.options.config?.whitelist && client.uuid !== this.conn?.bot._client.uuid) {
+    if (this.options.extra?.whitelist && client.uuid !== this.conn?.bot._client.uuid) {
       return client.end('whitelist is enabled and you are using the wrong account.');
     }
     if (!!(this.conn?.bot?.entity as any)?.id) {
@@ -152,13 +148,13 @@ export class Proxy {
   }
   private onClientEnd(err?: Error) {
     logErrorIfExists(err);
-    if (this.state !== 'idle' && this.options.config?.reconnect) {
-      log(`Connection reset by 2b2t server. Reconnecting in ${this.options.config.reconnect.timeout}ms`);
+    if (this.state !== 'idle' && !!this.options.extra?.reconnect) {
+      log(`Connection reset by 2b2t server. Reconnecting in ${this.options.extra.reconnect.timeout}ms`);
       this.state = 'reconnect';
       this.setCurrentTimeout(() => {
         //TODO! implement the pinging stuff
         this.startQueuing();
-      }, this.options.config?.reconnect?.timeout);
+      }, this.options.extra?.reconnect?.timeout);
     } else this.stopQueuing();
   }
   private onClientPacket(data: any, packetMeta: PacketMeta) {
@@ -184,7 +180,7 @@ export class Proxy {
         if (this.state === 'queue') {
           let chatMessage = JSON.parse(data.message);
           if (chatMessage.text === 'Connecting to the server...') {
-            if (this.options.config?.expandQueueData && !!this.queueStartPlace && !!this.queueStartTime) expandQueueData(this.queueStartPlace, this.queueStartTime);
+            if (this.options.extra?.expandQueueData && !!this.queueStartPlace && !!this.queueStartTime) expandQueueData(this.queueStartPlace, this.queueStartTime);
             if (this.webserver.restartQueue && !!this.conn?.pclient) this.reconnect();
             else {
               this.state = 'connected';

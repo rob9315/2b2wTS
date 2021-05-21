@@ -1,5 +1,8 @@
 ## custom additions
 
+# config files
+config/
+
 # lockfiles because they cause trouble often
 package-lock.json
 yarn.lock
