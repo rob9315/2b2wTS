@@ -4,13 +4,13 @@ import { ProxyOptions } from './config';
 import dotenv from 'dotenv';
 import cfg from 'config';
 import { setup } from './setup';
-import merge from 'lodash.merge';
+import merge from 'ts-deepmerge';
 
 try {
   dotenv.config();
 } catch {}
 (async () => {
-  if (process.argv.includes('config')) merge(cfg, await setup(merge(new ProxyOptions(), cfg.util.toObject(cfg))));
+  if (process.argv.includes('config') || process.argv.includes('setup')) merge(cfg, await setup(merge(new ProxyOptions(), cfg.util.toObject(cfg))));
 
   const proxy = new Proxy(merge(new ProxyOptions(), cfg.util.toObject(cfg)));
 

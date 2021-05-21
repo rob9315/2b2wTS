@@ -1,8 +1,8 @@
 import { Conn } from 'mcproxy';
 import { Client, Server, createServer, PacketMeta } from 'minecraft-protocol';
-import { Client as djsClient } from 'discord.js';
+import { Client as djsClient, Intents } from 'discord.js';
 import { WebServer } from './webserver';
-import { expandQueueData, log, logActivity, logErrorIfExists, setETA } from './util';
+import { log, logActivity, logErrorIfExists, setETA } from './util';
 import * as util from './util';
 import { DateTime } from 'luxon';
 import { onDiscordMessage } from './discord';
@@ -38,8 +38,8 @@ export class Proxy {
     this.state = 'idle';
     options.discord = !!options.discord && options.discord?.token !== '' ? options.discord : null;
     if (!!options.discord) {
-      this.discord = new djsClient({});
-      this.discord.login(options.discord.token);
+      this.discord = new djsClient({ ws: { intents: new Intents(['DIRECT_MESSAGES', 'GUILDS']) } });
+      this.discord.login(options.discord.token).then(() => this.log('Discord Bot started'));
       this.discord.on('message', onDiscordMessage.bind(this));
     }
     this.webserver = new WebServer(options.webserver, this);
@@ -51,7 +51,7 @@ export class Proxy {
     this.state = 'auth';
     this.conn = new Conn(this.options.mcclient);
     this.conn.bot.once('login', () => {
-      this.state = this.options.mcclient.host === '2b2t.org' ? 'queue' : 'connected';
+      this.state = this.options.mcclient.host?.includes('2b2t.org') ? 'queue' : 'connected';
     });
     this.conn.bot._client.on('end', this.onClientEnd.bind(this));
     this.conn.bot._client.on('error', this.onClientEnd.bind(this));
@@ -73,7 +73,7 @@ export class Proxy {
     this.conn = undefined;
   }
   private updateQueuePosition() {
-    if (this.state != 'connected') return this.setETA();
+    if (!['antiafk', 'connected'].includes(this.state)) return this.setETA();
     this.webserver.queuePlace = 'FINISHED';
     this.webserver.ETA = 'NOW';
   }
@@ -93,8 +93,9 @@ export class Proxy {
         this.startQueuing();
         return 'Started Queuing';
       case 'stop':
+        quitmsg = ['idle'].includes(this.state) ? 'Not Queuing currently' : 'Stopped Queuing';
         this.stopQueuing();
-        return ['idle'].includes(this.state) ? 'Not Queuing currently' : 'Stopped Queuing';
+        return quitmsg;
       case 'update':
         return `current state: "${this.state}"`;
       case 'help':
@@ -138,7 +139,7 @@ export class Proxy {
   }
 
   private onClientLogin(this: Proxy, client: Client) {
-    if (this.options.extra?.whitelist && client.uuid !== this.conn?.bot._client.uuid) {
+    if (this.options.mcserver['online-mode'] && client.uuid !== this.conn?.bot._client.uuid) {
       return client.end('whitelist is enabled and you are using the wrong account.');
     }
     if (!!(this.conn?.bot?.entity as any)?.id) {
@@ -182,7 +183,7 @@ export class Proxy {
         if (this.state === 'queue') {
           let chatMessage = JSON.parse(data.message);
           if (chatMessage.text === 'Connecting to the server...') {
-            if (this.options.extra?.expandQueueData && !!this.queueStartPlace && !!this.queueStartTime) expandQueueData(this.queueStartPlace, this.queueStartTime);
+            // if (this.options.extra?.expandQueueData && !!this.queueStartPlace && !!this.queueStartTime) expandQueueData(this.queueStartPlace, this.queueStartTime);
             if (this.webserver.restartQueue && !!this.conn?.pclient) this.reconnect();
             else {
               this.state = 'connected';
