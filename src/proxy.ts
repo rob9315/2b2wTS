@@ -95,8 +95,10 @@ export class Proxy {
       case 'stop':
         this.stopQueuing();
         return ['idle'].includes(this.state) ? 'Not Queuing currently' : 'Stopped Queuing';
+      case 'update':
+        return `current state: "${this.state}"`;
       case 'help':
-        return `current state: "${this.state}"\npossible commands:\nstart\nstop\nhelp\n`;
+        return `current state: "${this.state}"\nread the available commands on https://github.com/rob9315/2b2wts/blob/master/README.md`;
       case 'exit':
       case 'quit':
         process.exit(0);
