@@ -1,6 +1,6 @@
 {
   "name": "2b2wts",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "rewrite of 2bored2wait",
   "main": "lib/main.js",
   "scripts": {
