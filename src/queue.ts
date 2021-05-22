@@ -6,7 +6,7 @@ import everpolate from 'everpolate';
 import type { DateTime } from 'luxon';
 import type { Proxy } from './proxy';
 
-export type QueueData = [number[], number[]];
+export type QueueData = [position: number[], exponent: number[]];
 
 export const newQueueData = () => [[], []] as QueueData;
 
@@ -25,12 +25,10 @@ const average = (array: number[]) => array.reduce((a, b) => a + b) / array.lengt
 export let multiQueueData: QueueData[];
 export let averageQueueData = getQueueData();
 
-function toPosArrValues([position, exponent]: QueueData, index: number) {
+function toPosArrValues(queueData: QueueData, index: number) {
   multiQueueData[index] = newQueueData();
-  posArr.forEach((pos) => {
-    multiQueueData[index][0].push(pos);
-    multiQueueData[index][1].push(everpolate.polynomial(pos, position, exponent));
-  });
+  multiQueueData[index][0] = posArr;
+  multiQueueData[index][1] = everpolate.linear(posArr, ...queueData);
 }
 
 function getQueueData() {
@@ -39,9 +37,9 @@ function getQueueData() {
     multiQueueData = [];
     JSON.parse(readFileSync('queue.json', 'utf-8')).forEach(toPosArrValues);
   }
-  multiQueueData[0][0].forEach((position, index) => {
+  posArr.forEach((position, index) => {
     let exponents: number[] = [];
-    multiQueueData.forEach(([pos, exponent]) => exponents.push(exponent[index]));
+    multiQueueData.forEach((queueData) => exponents.push(queueData[1][index]));
     averageQueueData[0][index] = position;
     averageQueueData[1][index] = average(exponents);
   });
@@ -63,24 +61,13 @@ export async function saveCurrentQueueData(this: Proxy) {
     }
 }
 
-// old method for adding to the queue data, though it didn't help increase accuracy, it only broke stuff.
 export async function expandQueueData(newQueueData: QueueData) {
   readFile('queue.json', 'utf-8', (err, data) => {
     logErrorIfExists(err);
-    let multiQueueData: QueueData[] = [];
     let queueDataArr: QueueData[] = JSON.parse(data);
     queueDataArr.forEach(toPosArrValues);
     toPosArrValues(newQueueData, queueDataArr.length);
     writeFileSync('queue.json', JSON.stringify(multiQueueData), 'utf-8');
     averageQueueData = getQueueData();
   });
-
-  // readFile('queue.json', 'utf-8', (err, data) => {
-  // logErrorIfExists(err);
-  // let queueData = JSON.parse(data);
-  // queueData.place.push(place);
-  // let b = Math.pow((0 + c) / (place + c), 1 / (time.diffNow().milliseconds / 1000));
-  // queueData.factor.push(b);
-  // writeFile('queue.json', JSON.stringify(queueData), 'utf-8', logErrorIfExists);
-  // });
 }

@@ -81,6 +81,7 @@ export async function setup(config?: ProxyOptions) {
             maxLines: Number(await configQuestion('Amount of lines in the logs to keep, leave blank for no limit', `${config.extra?.logging?.maxLines ?? (allDefaults.extra?.logging?.maxLines as number)}`, true)),
           }
         : null,
+      expandQueueData: isTrue(await configQuestion('Do you want to expand the Queue Data? Can improve ETA accuracy.', `${config.extra?.expandQueueData ?? allDefaults.extra?.expandQueueData}`)),
       //TODO add more
     };
   displayObject(config, config.mcclient.password, config.discord?.token);
