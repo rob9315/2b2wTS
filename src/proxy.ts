@@ -6,8 +6,10 @@ import { log, logActivity, logErrorIfExists, setETA } from './util';
 import * as util from './util';
 import { DateTime } from 'luxon';
 import { onDiscordMessage } from './discord';
+import { newQueueData, saveCurrentQueueData } from './queue';
 
 import type { ProxyOptions } from './config';
+import type { QueueData } from './queue';
 
 export class Proxy {
   server: Server;
@@ -25,6 +27,8 @@ export class Proxy {
 
   queueStartPlace?: number;
   queueStartTime?: DateTime;
+  queueData?: QueueData = this.options?.extra?.expandQueueData ? newQueueData() : undefined;
+  saveCurrentQueueData = saveCurrentQueueData.bind(this);
 
   timeout?: NodeJS.Timeout;
   timeoutStartTime?: DateTime;
@@ -45,6 +49,7 @@ export class Proxy {
     this.webserver = new WebServer(options.webserver, this);
     this.server = createServer(options.mcserver);
     this.server.on('login', this.onClientLogin.bind(this));
+    if (options.extra?.startImmediately) this.startQueuing();
   }
   startQueuing() {
     this.clearCurrentTimeout();
@@ -150,14 +155,14 @@ export class Proxy {
     return client.end('problem with conn, are you not queuing?');
   }
   private onClientEnd(err?: Error) {
-    logErrorIfExists(err);
+  logErrorIfExists(err);
     if (this.state !== 'idle' && !!this.options.extra?.reconnect) {
       log(`Connection reset by 2b2t server. Reconnecting in ${this.options.extra.reconnect.timeout}ms`);
       this.state = 'reconnect';
       this.setCurrentTimeout(() => {
         //TODO! implement the pinging stuff
         this.startQueuing();
-      }, this.options.extra?.reconnect?.timeout);
+      }, this.options.extra.reconnect.timeout);
     } else this.stopQueuing();
   }
   private onClientPacket(data: any, packetMeta: PacketMeta) {
@@ -192,6 +197,10 @@ export class Proxy {
             }
           }
         }
+        break;
+      case 'kick_disconnect':
+        this.onClientEnd(data);
+        break;
     }
   }
 }

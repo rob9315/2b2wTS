@@ -48,4 +48,6 @@ export class ExtraOptions {
   logging: { maxLines?: number } | null = {
     maxLines: 1000,
   };
+  expandQueueData? = true;
+  startImmediately? = true;
 }
