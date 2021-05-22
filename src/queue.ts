@@ -42,8 +42,8 @@ function getQueueData() {
   multiQueueData[0][0].forEach((position, index) => {
     let exponents: number[] = [];
     multiQueueData.forEach(([pos, exponent]) => exponents.push(exponent[index]));
-    averageQueueData[0][index] = average(exponents);
-    averageQueueData[1][index] = position;
+    averageQueueData[0][index] = position;
+    averageQueueData[1][index] = average(exponents);
   });
   return averageQueueData;
 }
