@@ -1,7 +1,7 @@
 ## custom additions
 
 # config files
-config/
+config/*.json
 
 # lockfiles because they cause trouble often
 package-lock.json

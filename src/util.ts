@@ -15,12 +15,22 @@ export async function question(text: string): Promise<string> {
 }
 
 export function setETA(this: Proxy) {
-  let totalWaitTime = getWaitTime(this.queueStartPlace as number, 0);
-  let timePassed = getWaitTime(this.queueStartPlace as number, (this.webserver.queuePlace === 'None' ? this.queueStartPlace : this.webserver.queuePlace) as number);
-  let ETA = (totalWaitTime - timePassed) / 60;
-  this.webserver.ETA = `${Math.floor(ETA / 60)}h ${Math.floor(ETA % 60)}m`;
-  this.logActivity(`P: ${this.webserver.queuePlace} E: ${this.webserver.ETA}`);
-  //todo add notifications
+  switch (this.state) {
+    case 'queue':
+      let totalWaitTime = getWaitTime(this.queueStartPlace as number, 0);
+      let timePassed = getWaitTime(this.queueStartPlace as number, (this.webserver.queuePlace === 'None' ? this.queueStartPlace : this.webserver.queuePlace) as number);
+      let ETA = (totalWaitTime - timePassed) / 60;
+      this.webserver.ETA = `${Math.floor(ETA / 60)}h ${Math.floor(ETA % 60)}m`;
+      this.logActivity(`P: ${this.webserver.queuePlace} E: ${this.webserver.ETA}`);
+      //todo add notifications
+      break;
+    case 'connected':
+    case 'antiafk':
+      this.webserver.ETA = 'None';
+      this.logActivity('Not Queuing');
+    default:
+      return;
+  }
   this.saveCurrentQueueData();
 }
 export function getWaitTime(queueLength: number, queuePos: number) {

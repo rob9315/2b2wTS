@@ -76,6 +76,7 @@ export class Proxy {
     this.webserver.isInQueue = false;
     this.conn?.disconnect();
     this.conn = undefined;
+    this.setETA();
   }
   private updateQueuePosition() {
     if (!['antiafk', 'connected'].includes(this.state)) return this.setETA();

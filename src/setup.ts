@@ -1,6 +1,6 @@
 import * as util from './util';
 import { ProxyOptions } from './config';
-import { writeFile } from 'fs';
+import { writeFile, mkdirSync, exists } from 'fs';
 import merge from 'deepmerge';
 import { util as cfgutil } from 'config';
 
@@ -85,7 +85,7 @@ export async function setup(config?: ProxyOptions) {
     };
   displayObject(config, config.mcclient.password, config.discord?.token);
   let diff = cfgutil.diffDeep(new ProxyOptions(), config);
-  if (diff !== {} && isTrue(await util.question('Do you want to save your configuration?\n> '))) await new Promise((resolve) => writeFile('config/local.json', JSON.stringify(diff, null, 2), resolve));
+  if (diff !== {} && isTrue(await util.question('Do you want to save your configuration?\n> '))) await new Promise((resolve) => `${exists('config', (bool) => (bool ? undefined : mkdirSync('config')))}` && writeFile('config/local.json', JSON.stringify(diff, null, 2), resolve));
   console.clear();
   return config;
 }
