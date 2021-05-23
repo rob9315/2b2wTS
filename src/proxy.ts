@@ -58,7 +58,7 @@ export class Proxy {
     this.conn.bot.once('login', () => {
       this.state = this.options.mcclient.host?.includes('2b2t.org') ? 'queue' : 'connected';
     });
-    this.conn.bot._client.on('end', this.onClientEnd.bind(this));
+    this.conn.bot._client.once('end', this.onClientEnd.bind(this));
     this.conn.bot._client.on('error', this.onClientEnd.bind(this));
     this.conn.bot._client.on('packet', this.onClientPacket.bind(this));
     this.webserver.isInQueue = true;
@@ -155,9 +155,12 @@ export class Proxy {
     }
     return client.end('problem with conn, are you not queuing?');
   }
-  private onClientEnd(err?: Error) {
-  logErrorIfExists(err);
+  private onClientEnd(err?: Error | string) {
+    if (err === 'conn: disconnect called') return;
+    logErrorIfExists(err);
+    this.conn?.bot._client.removeListener('error', this.onClientEnd.bind(this));
     if (this.state !== 'idle' && !!this.options.extra?.reconnect) {
+      this.stop();
       log(`Connection reset by 2b2t server. Reconnecting in ${this.options.extra.reconnect.timeout}ms`);
       this.state = 'reconnect';
       this.setCurrentTimeout(() => {
@@ -200,7 +203,7 @@ export class Proxy {
         }
         break;
       case 'kick_disconnect':
-        this.onClientEnd(data);
+        this.onClientEnd(new Error(JSON.parse(data.reason).text ?? JSON.stringify(data)));
         break;
     }
   }

@@ -1,6 +1,6 @@
 import { readFile, readFileSync, writeFileSync } from 'fs';
 import { logErrorIfExists } from './util';
-//@ts-ignore
+//@ts-ignore (no type definitions)
 import everpolate from 'everpolate';
 
 import type { DateTime } from 'luxon';
@@ -15,12 +15,20 @@ const posArr: number[] = [
   ...','
     .repeat(30)
     .split(',')
-    .map((val, index, arr: any) => (arr[index] = (index + 1) * 16)),
+    .map((val, index, arr: any) => (arr[index] = (index + 1) * 32)),
 ];
 
 export const c = 150;
 
 const average = (array: number[]) => array.reduce((a, b) => a + b) / array.length;
+
+export const linear = <T extends number[], K extends number[]>(x: number | K, knownX: T, knownY: T): K => {
+  knownX.push(knownX[knownX.length - 1] + (knownX[0] > knownX[1] ? -1 : 1));
+  knownY.push(knownY[knownY.length - 1]);
+  knownX.unshift(knownX[0] + (knownX[0] < knownX[1] ? -1 : 1));
+  knownY.unshift(knownY[0]);
+  return everpolate.linear(x, knownX, knownY);
+};
 
 export let multiQueueData: QueueData[];
 export let averageQueueData = getQueueData();
@@ -28,7 +36,7 @@ export let averageQueueData = getQueueData();
 function toPosArrValues(queueData: QueueData, index: number) {
   multiQueueData[index] = newQueueData();
   multiQueueData[index][0] = posArr;
-  multiQueueData[index][1] = everpolate.linear(posArr, ...queueData);
+  multiQueueData[index][1] = linear(posArr, ...queueData);
 }
 
 function getQueueData() {

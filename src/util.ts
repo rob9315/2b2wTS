@@ -2,9 +2,7 @@ import { DateTime } from 'luxon';
 import { appendFile } from 'fs';
 import { get } from 'https';
 import rl from 'readline';
-//@ts-ignore (no type definitions)
-import everpolate from 'everpolate';
-import { averageQueueData, c } from './queue';
+import { averageQueueData, c, linear } from './queue';
 
 import type { Proxy } from './proxy';
 
@@ -34,7 +32,7 @@ export function setETA(this: Proxy) {
   this.saveCurrentQueueData();
 }
 export function getWaitTime(queueLength: number, queuePos: number) {
-  let b = everpolate.linear(queueLength, ...averageQueueData)[0];
+  let b = linear(queueLength, ...averageQueueData)[0];
   return Math.log((queuePos + c) / (queueLength + c)) / Math.log(b); // see issue 141
 }
 export function timeStringtoDateTime(time: string) {
@@ -54,7 +52,7 @@ export function logActivity(this: Proxy, message: string) {
   this.discord?.user?.setActivity(message);
   this.server.motd = message;
 }
-export function logErrorIfExists(err?: Error | null) {
+export function logErrorIfExists(err?: Error | string | null) {
   if (!!err) log(String(err));
 }
 
