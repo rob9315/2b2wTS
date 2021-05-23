@@ -34,7 +34,7 @@ export class WebServer {
         res.writeHead(200, { 'Content-type': 'text/css' });
         res.write(css);
         break;
-      case '/particles.css':
+      case '/particles.js':
         res.writeHead(200, { 'Content-type': 'text/javascript' });
         res.write(particles);
         break;
