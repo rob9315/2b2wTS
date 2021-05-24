@@ -28,7 +28,7 @@ export const defaultOptions = new ProxyOptions();
 export async function setup(config?: ProxyOptions) {
   config = merge(defaultOptions, config ?? {});
   displayObject(config.mcclient, config.mcclient.password);
-  if (isTrue(await configQuestion('Do you want to edit the mcclient options?', `${false}`))) {
+  if (isTrue(await configQuestion('Do you want to edit the mcclient/user account options?', `${false}`))) {
     config.mcclient.username = await configQuestion('Please enter your minecraft email (or username if offline)', config.mcclient.username ?? 'user@example.com');
     config.mcclient.password = config.mcclient.username.match(/.+@.+\..+/) ? await configQuestion('Please enter your minecraft password', config.mcclient.password ?? 'password', undefined, true) : undefined;
     config.mcclient.host = await configQuestion('Enter the host you want to connect to', config.mcclient.host ?? (allDefaults.mcclient.host as string));
