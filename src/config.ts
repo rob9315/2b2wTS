@@ -32,7 +32,7 @@ export class ServerOptions implements IServerOptions {
 
 export class WebServerOptions {
   host: string = '0.0.0.0';
-  port: number = 80;
+  port: number = 8080;
   password?: string;
 }
 
