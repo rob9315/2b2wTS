@@ -44,8 +44,9 @@ export function timeStringtoDateTime(time: string) {
 
 // logging
 export async function log(this: any, message: string) {
-  process.stdout.write(`\x1B[F\n${message}\n$ ${rlIf.line}`);
-  if (this?.options?.config?.logging) appendFile('.2bored2wait', message, () => {});
+  let time = DateTime.now().toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS)
+  process.stdout.write(`\x1B[F\n[${time}] ${message}\n$ ${rlIf.line}`);
+  if (this?.options?.config?.logging) appendFile('.2bored2wait', `[${time}] ${message}`, () => {});
 }
 export function logActivity(this: Proxy, message: string) {
   log(message);
