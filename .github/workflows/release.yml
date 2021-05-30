@@ -1,0 +1,30 @@
+# This workflow allows the maintainers to trigger a new release manually
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version-type:
+        description: How major the changes are [ major | minor | patch | exact_version ]
+        required: true
+        default: patch
+
+jobs:
+  release:
+    name: Github and NPM Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+      - name: Configure git credentials
+        uses: OleksiyRudenko/gha-git-credentials@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ github.actor }}
+          email: ${{ github.actor }}@users.noreply.github.com
+      - name: Bump version in package.json and add to CHANGELOG.md
+        run: npx standard-version --release-as ${{ github.event.inputs.version-type }}
+      - name: Push to GitHub and NPM
+        run: git push --follow-tags origin master && npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
