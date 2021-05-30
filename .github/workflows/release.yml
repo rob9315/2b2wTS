@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       version-type:
-        description: How major the changes are [ major | minor | patch | exact_version ]
+        description: How major the changes are [ major | minor | patch | beta | exact_semver ]
         required: true
         default: patch
 
@@ -23,8 +23,8 @@ jobs:
           name: ${{ github.actor }}
           email: ${{ github.actor }}@users.noreply.github.com
       - name: Bump version in package.json and add to CHANGELOG.md
-        run: npx standard-version --release-as ${{ github.event.inputs.version-type }}
-      - name: Push to GitHub and NPM
-        run: git push --follow-tags origin master && npm publish
+        run: npx standard-version --release-as ${{ github.event.inputs.version-type == 'beta' && 'patch' || github.event.inputs.version-type }}
+      - name: Push Tag to GitHub and Release new NPM version
+        run: git push --follow-tags origin master && npm publish ${{ contains(github.event.inputs.version-type, 'beta') || '--tag beta' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
