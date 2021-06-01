@@ -1,0 +1,6 @@
+# specifically shouldn't be published to npm
+Dockerfile
+docker-compose.yml
+.gitignore
+.github/
+src/

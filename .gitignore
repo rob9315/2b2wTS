@@ -115,4 +115,4 @@ dist
 .dynamodb/
 
 # TernJS port file
-.tern-portrob9315/test-get-default-gitignore
+.tern-port
