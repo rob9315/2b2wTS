@@ -1,6 +1,6 @@
 {
   "name": "@rob9315/2b2wts",
-  "version": "0.0.0-beta.0",
+  "version": "0.0.0-beta.1",
   "description": "rewrite of 2bored2wait",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -24,13 +24,13 @@
   "author": "Rob9315",
   "license": "GPL-3.0",
   "dependencies": {
+    "@rob9315/mcproxy": "^0.0.4",
     "config": "^3.3.6",
     "deepmerge": "^4.2.2",
     "discord.js": "^12.5.3",
     "dotenv": "^9.0.2",
     "everpolate": "^0.0.3",
     "luxon": "^1.27.0",
-    "@rob9315/mcproxy": "^0.0.4",
     "minecraft-protocol": "^1.25.0",
     "particles.js": "^2.0.0"
   },
