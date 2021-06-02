@@ -30,7 +30,7 @@
     "dotenv": "^9.0.2",
     "everpolate": "^0.0.3",
     "luxon": "^1.27.0",
-    "@rob9315/mcproxy": "^0.0.2",
+    "@rob9315/mcproxy": "^0.0.4",
     "minecraft-protocol": "^1.25.0",
     "particles.js": "^2.0.0"
   },
