@@ -1,5 +1,5 @@
 {
-  "name": "2b2wts",
+  "name": "@rob9315/2b2wts",
   "version": "0.0.0-beta.0",
   "description": "rewrite of 2bored2wait",
   "main": "lib/index.js",
@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node lib/main.js",
     "build": "npx tsc",
-    "postinstall": "npm run build"
+    "prepublish": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -30,7 +30,7 @@
     "dotenv": "^9.0.2",
     "everpolate": "^0.0.3",
     "luxon": "^1.27.0",
-    "mcproxy": "git+https://github.com/rob9315/mcproxy.git",
+    "@rob9315/mcproxy": "^0.0.2",
     "minecraft-protocol": "^1.25.0",
     "particles.js": "^2.0.0"
   },

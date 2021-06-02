@@ -1,4 +1,4 @@
-import { Conn } from 'mcproxy';
+import { Conn } from '@rob9315/mcproxy';
 import { Client, Server, createServer, PacketMeta } from 'minecraft-protocol';
 import { Client as djsClient, Intents } from 'discord.js';
 import { WebServer } from './webserver';
