@@ -21,7 +21,7 @@
     "minecraft",
     "typescript"
   ],
-  "author": "Rob9315",
+  "author": "rob9315",
   "license": "GPL-3.0",
   "dependencies": {
     "@rob9315/mcproxy": "^0.0.4",
