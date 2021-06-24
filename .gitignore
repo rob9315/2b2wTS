@@ -1,5 +1,8 @@
 ## custom additions
 
+# minecraft token files
+launcher_accounts.json
+
 # config files
 config/*.json
 

@@ -31,6 +31,7 @@ export async function setup(config?: ProxyOptions) {
   if (isTrue(await configQuestion('Do you want to edit the mcclient/user account options?', `${true}`))) {
     config.mcclient.username = await configQuestion('Please enter your minecraft email (or username if offline)', config.mcclient.username ?? 'user@example.com');
     config.mcclient.password = config.mcclient.username.match(/.+@.+\..+/) ? await configQuestion('Please enter your minecraft password', config.mcclient.password ?? 'password', undefined, true) : undefined;
+    config.mcclient.auth = config.mcclient.username.match(/.+@.+\..+/) ? ((await configQuestion('Which kind of account is this ("mojang" or "microsoft")', config.mcclient.auth ?? 'mojang')) === 'microsoft' ? 'microsoft' : 'mojang') : undefined;
     config.mcclient.host = await configQuestion('Enter the host you want to connect to', config.mcclient.host ?? (allDefaults.mcclient.host as string));
     config.mcclient.port = Number(config.mcclient.host === allDefaults.mcclient.host ? 25565 : await configQuestion('Enter the port you want to connect to', `${config.mcclient.port ?? (allDefaults.mcclient.port as number)}`));
     config.mcclient.version = config.mcclient.host !== '2b2t.org' ? await configQuestion('Please enter the version you want to connect as', config.mcclient.version ?? (allDefaults.mcclient.version as string)) : (allDefaults.mcclient.version as string);
