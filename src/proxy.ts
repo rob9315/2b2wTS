@@ -8,8 +8,9 @@ import { DateTime } from 'luxon';
 import { onDiscordMessage } from './discord';
 import { newQueueData, saveCurrentQueueData } from './queue';
 
-import type { ProxyOptions } from './config';
+import type { BotOptions, ProxyOptions } from './config';
 import type { QueueData } from './queue';
+import type { Bot, BotOptions as IBotOptions } from 'mineflayer';
 
 export class Proxy {
   server: Server;
@@ -54,10 +55,18 @@ export class Proxy {
   startQueuing() {
     this.clearCurrentTimeout();
     this.state = 'auth';
+    if (!!this.options.antiafk) (this.options.mcclient.plugins = this.options.mcclient.plugins ?? {})['afk'] = require('mineflayer-antiafk');
     this.conn = new Conn(this.options.mcclient);
     this.conn.bot.once('login', () => {
       this.state = this.options.mcclient.host?.includes('2b2t.org') ? 'queue' : 'connected';
     });
+    //* load/customize extensions
+    this.options.extensions?.reduce((arr, fn) => [...arr, fn(this.conn as Conn)], [] as (void | ((bot: Bot, options: IBotOptions) => void))[]).forEach((v) => !!v && this.conn?.bot.loadPlugin(v));
+    if (!!this.options.antiafk)
+      this.conn.bot.once('spawn', async () => {
+        (this.conn?.bot as any)?.afk?.setOptions(this.options.antiafk);
+        if (!this.conn?.pclient) await (this.conn?.bot as any)?.afk?.start();
+      });
     this.conn.bot._client.once('end', this.onClientEnd.bind(this));
     this.conn.bot._client.on('error', this.onClientEnd.bind(this));
     this.conn.bot._client.on('packet', this.onClientPacket.bind(this));
@@ -99,7 +108,7 @@ export class Proxy {
         this.startQueuing();
         return 'Started Queuing';
       case 'stop':
-        quitmsg = ['idle'].includes(this.state) ? 'Not Queuing currently' : 'Stopped Queuing';
+        quitmsg = ['idle'].includes(this.state) ? 'Not Queuing currently' : `Stopped Queuing`;
         this.stopQueuing();
         return quitmsg;
       case 'update':
@@ -144,16 +153,22 @@ export class Proxy {
     this.setCurrentTimeout(this.timePlay.bind(this), this.options.extra?.reconnect?.timeout ?? 30000, time);
   }
 
-  private onClientLogin(this: Proxy, client: Client) {
+  private async onClientLogin(this: Proxy, client: Client) {
     if (this.options.mcserver['online-mode'] && client.uuid !== this.conn?.bot._client.uuid) {
       return client.end('whitelist is enabled and you are using the wrong account.');
     }
-    if (!!(this.conn?.bot?.entity as any)?.id) {
-      this.conn?.sendPackets(client);
-      this.conn?.link(client);
-      return;
+    if (!(this.conn?.bot?.entity as any)?.id) {
+      return client.end(`2b2w not connected\ncurrent status: '${this.state}'`);
     }
-    return client.end('problem with conn, are you not queuing?');
+    await (this.conn?.bot as any)?.afk?.stop();
+    this.conn?.sendPackets(client);
+    this.conn?.link(client);
+    if (!!this.options.antiafk)
+      client.on('end', async () => {
+        this.state = 'antiafk';
+        while (!(this.conn?.bot as any)?.afk?.enabled) await (this.conn?.bot as any)?.afk?.start();
+      });
+    return;
   }
   private onClientEnd(err?: Error | string) {
     if (err === 'conn: disconnect called') return;
@@ -161,6 +176,7 @@ export class Proxy {
     this.conn?.bot._client.removeListener('error', this.onClientEnd.bind(this));
     if (this.state !== 'idle' && !!this.options.extra?.reconnect) {
       this.stop();
+      if (err === 'noreconnect') return (this.state = 'idle');
       log(`Connection reset by 2b2t server. Reconnecting in ${this.options.extra.reconnect.timeout}ms`);
       this.state = 'reconnect';
       this.setCurrentTimeout(() => {
@@ -176,10 +192,11 @@ export class Proxy {
           let prevQueuePlace = this.webserver.queuePlace;
           let headermessage = JSON.parse(data.header);
           try {
-            let queuePlace = headermessage.text.split('\n')[5].substring(25);
+            let queuePlace = headermessage.text.match(/(?<=Position in queue: (?:§.)*)(\d+|None)/)?.[0];
             this.webserver.queuePlace = queuePlace === 'None' ? 'None' : Number(queuePlace);
           } catch (e) {
-            if (e instanceof TypeError) log("Reading position in queue from tab failed! Is the queue empty, or the server isn't 2b2t?");
+            this.state = 'connected';
+            this.updateQueuePosition();
           }
           if (prevQueuePlace === 'None' && this.webserver.queuePlace !== 'None') {
             this.queueStartPlace = this.webserver.queuePlace as number;
@@ -195,7 +212,7 @@ export class Proxy {
             // if (this.options.extra?.expandQueueData && !!this.queueStartPlace && !!this.queueStartTime) expandQueueData(this.queueStartPlace, this.queueStartTime);
             if (this.webserver.restartQueue && !!this.conn?.pclient) this.reconnect();
             else {
-              this.state = 'connected';
+              this.state = !this.conn?.pclient && this.options.antiafk ? 'antiafk' : 'connected';
               this.updateQueuePosition();
               this.logActivity('Queue is finished');
             }

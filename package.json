@@ -6,6 +6,7 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "start": "node lib/main.js",
+    "debug": "ts-node src/main.ts",
     "build": "npx tsc",
     "prepublish": "npm run build"
   },
@@ -24,20 +25,24 @@
   "author": "rob9315",
   "license": "GPL-3.0",
   "dependencies": {
-    "@rob9315/mcproxy": "^0.0.4",
+    "@rob9315/mcproxy": "^0.2.2",
     "config": "^3.3.6",
     "deepmerge": "^4.2.2",
     "discord.js": "^12.5.3",
-    "dotenv": "^9.0.2",
+    "dotenv": "^10.0.0",
     "everpolate": "^0.0.3",
-    "luxon": "^1.27.0",
+    "luxon": "^2.0.1",
     "minecraft-protocol": "^1.25.0",
-    "particles.js": "^2.0.0"
+    "mineflayer-antiafk": "^1.1.1",
+    "particles.js": "^2.0.0",
+    "prompt-sync": "^4.2.0"
   },
   "devDependencies": {
-    "@types/config": "^0.0.38",
+    "@types/config": "^0.0.39",
     "@types/luxon": "^1.26.5",
-    "@types/node": "^15.3.0",
+    "@types/node": "^16.4.13",
+    "@types/prompt-sync": "^4.1.1",
+    "ts-node": "^10.1.0",
     "typescript": "^4.2.4"
   }
 }

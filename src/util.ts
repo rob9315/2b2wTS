@@ -6,6 +6,15 @@ import { averageQueueData, c, linear } from './queue';
 
 import type { Proxy } from './proxy';
 
+const prompt: import('prompt-sync').Prompt = require('prompt-sync')();
+
+export const p = (ask: string, value: unknown, options?: import('prompt-sync').Option) => {
+  let s = ask.split('\n'),
+    p = s.pop() as string;
+  s.length > 0 && console.log(s.join('\n'));
+  return prompt(p, value as string, options ?? {});
+};
+
 // helper interface for chat commands
 export const rlIf = rl.createInterface({ input: process.stdin, output: process.stdout });
 export async function question(text: string): Promise<string> {
@@ -44,7 +53,7 @@ export function timeStringtoDateTime(time: string) {
 
 // logging
 export async function log(this: any, message: string) {
-  let time = DateTime.now().toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS)
+  let time = DateTime.now().toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS);
   process.stdout.write(`\x1B[F\n[${time}] ${message}\n$ ${rlIf.line}`);
   if (this?.options?.config?.logging) appendFile('.2bored2wait', `[${time}] ${message}`, () => {});
 }

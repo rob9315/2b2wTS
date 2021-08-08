@@ -9,12 +9,13 @@ import merge from 'deepmerge';
 try {
   dotenv.config();
 } catch {}
+
+//temporary fix until there is top level await is officially supported in nodejs
 (async () => {
-  if (process.argv.includes('config') || process.argv.includes('setup')) Object.assign(cfg, merge(cfg, await setup(merge(new ProxyOptions(), cfg.util.toObject(cfg)))));
+  if (process.argv.includes('config') || process.argv.includes('setup') || JSON.stringify(cfg) == '{}') Object.assign(cfg, merge(cfg, await setup(merge(new ProxyOptions(), cfg.util.toObject(cfg)))));
+  if (process.argv.includes('config')) process.exit(0);
 
-  const proxy = new Proxy(merge(new ProxyOptions(), cfg.util.toObject(cfg)));
+  const proxy = new Proxy(merge(new ProxyOptions(), cfg));
 
-  (async () => {
-    while (true) console.log(proxy.command(await question('$ ')));
-  })();
+  while (true) console.log(proxy.command(await question('$ ')));
 })();
