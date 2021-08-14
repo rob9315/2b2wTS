@@ -1,13 +1,13 @@
 import { Proxy } from './proxy';
-import { question } from './util';
-import { ProxyOptions } from './config';
-import dotenv from 'dotenv';
 import cfg from 'config';
-import { setup } from './setup';
+import { question } from './util';
+import { config } from 'dotenv';
+import { ProxyOptions } from './config';
 import merge from 'deepmerge';
+import { setup } from './setup';
 
 try {
-  dotenv.config();
+  config();
 } catch {}
 
 //temporary fix until there is top level await is officially supported in nodejs
@@ -16,6 +16,18 @@ try {
   if (process.argv.includes('config')) process.exit(0);
 
   const proxy = new Proxy(merge(new ProxyOptions(), cfg));
-
-  while (true) console.log(proxy.command(await question('$ ')));
+  
+  while (true) console.log(await command(proxy, await question('$ ')));
 })();
+
+async function command(proxy: Proxy, cmd: string | null) {
+  switch (cmd?.split('0')[0]) {
+    case null:
+      break;
+    case 'exit':
+      process.exit(0);
+
+    default:
+      break;
+  }
+}

@@ -67,7 +67,7 @@ export class AntiAFKoptions {
   breaking?: number[]; // minecraft block ids
   placing?: number[]; // (find them at https://minecraft-data.prismarine.js.org/)
   chatting = false;
-  chatMessages?: string[];
+  chatMessages?: string[] = [];
   chatInterval? = 300000;
   killauraEnabled = true;
   autoEatEnabled = true;

@@ -12,6 +12,7 @@ yarn.lock
 
 # compiled js files
 lib/
+frontend/
 
 ## defaults from github
 

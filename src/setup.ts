@@ -176,6 +176,7 @@ export async function setup(config?: ProxyOptions) {
       expandQueueData: b('Do you want to expand the Queue Data? Can improve ETA accuracy.', !!config.extra?.expandQueueData ?? allDefaults.extra?.expandQueueData),
       //TODO add more
     };
+  config.extensions = undefined;
   displayObject(config, config.mcclient.password, config.discord?.token);
   let diff = cfgutil.diffDeep(new ProxyOptions(), config);
   if (diff !== {} && b('Do you want to save your configuration?', true)) await new Promise((resolve) => `${exists('config', (bool) => (bool ? undefined : mkdirSync('config')))}` && writeFile('config/local.json', JSON.stringify(diff, null, 2), resolve));

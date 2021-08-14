@@ -1,227 +1,221 @@
 import { Conn } from '@rob9315/mcproxy';
-import { Client, Server, createServer, PacketMeta } from 'minecraft-protocol';
-import { Client as djsClient, Intents } from 'discord.js';
-import { WebServer } from './webserver';
-import { log, logActivity, logErrorIfExists, setETA } from './util';
-import * as util from './util';
-import { DateTime } from 'luxon';
+import { Client, createServer, PacketMeta, Server } from 'minecraft-protocol';
+import { Client as Discord, Intents } from 'discord.js';
+import { ProxyOptions, WebServerOptions } from './config';
+import { Server as HTTP } from 'http';
+import serveStatic from 'serve-static';
+import { Server as IO, Socket } from 'socket.io';
+//@ts-ignore (no type definitions)
+import everpolate from 'everpolate';
 import { onDiscordMessage } from './discord';
-import { newQueueData, saveCurrentQueueData } from './queue';
 
-import type { BotOptions, ProxyOptions } from './config';
-import type { QueueData } from './queue';
-import type { Bot, BotOptions as IBotOptions } from 'mineflayer';
+import type { Bot, BotOptions } from 'mineflayer';
 
 export class Proxy {
+  conn: Conn | undefined;
   server: Server;
-  conn?: Conn;
-  webserver: WebServer;
-  discord?: djsClient;
 
-  // current State of the Proxy
-  // 'idle', 'auth', 'queue', 'connected' and 'antiafk' do what their name implies.
-  // 'timeStart', 'timePlay' and 'reconnect' means that currently a timeout is running
-  // for the implied reason
-  state: 'idle' | 'timeStart' | 'timePlay' | 'auth' | 'queue' | 'connected' | 'antiafk' | 'reconnect';
-  // only assigned, when state is 'timeStart' or 'timePlay'
-  extraStateInformation?: DateTime;
+  // optional features
+  webserver?: WebServer;
+  discord?: Discord;
 
-  queueStartPlace?: number;
-  queueStartTime?: DateTime;
-  queueData?: QueueData = this.options?.extra?.expandQueueData ? newQueueData() : undefined;
-  saveCurrentQueueData = saveCurrentQueueData.bind(this);
+  // keeping track of the state of the proxy
+  private _state: 'idle' | 'condition' | 'auth' | 'connected' | 'afk' | 'reconnecting' | 'queue' = 'idle';
 
-  timeout?: NodeJS.Timeout;
-  timeoutStartTime?: DateTime;
-  timeoutDuration?: number;
+  private _queue: number | undefined;
+  private _queuelength: number | undefined;
 
-  logActivity = logActivity.bind(this);
-  setETA = setETA.bind(this);
-  log = log.bind(this);
+  private _timeout: (NodeJS.Timeout & { start: number; end: number }) | undefined;
 
   constructor(public options: ProxyOptions) {
-    this.state = 'idle';
-    options.discord = !!options.discord && options.discord?.token !== '' ? options.discord : null;
-    if (!!options.discord) {
-      this.discord = new djsClient({ ws: { intents: new Intents(['DIRECT_MESSAGES', 'GUILDS']) } });
-      this.discord.login(options.discord.token).then(() => this.log('Discord Bot started'));
-      this.discord.on('message', onDiscordMessage.bind(this));
+    this.server = createServer(this.options.mcserver).on('login', onServerLogin.bind(this));
+    if (this.options.discord) {
+      this.discord = new Discord({ ws: { intents: Intents.ALL } }).on('message', onDiscordMessage);
+      this.discord.login(this.options.discord.token);
     }
-    this.webserver = new WebServer(options.webserver, this);
-    this.server = createServer(options.mcserver);
-    this.server.on('login', this.onClientLogin.bind(this));
-    if (options.extra?.startImmediately) this.startQueuing();
-  }
-  startQueuing() {
-    this.clearCurrentTimeout();
-    this.state = 'auth';
-    if (!!this.options.antiafk) (this.options.mcclient.plugins = this.options.mcclient.plugins ?? {})['afk'] = require('mineflayer-antiafk');
-    this.conn = new Conn(this.options.mcclient);
-    this.conn.bot.once('login', () => {
-      this.state = this.options.mcclient.host?.includes('2b2t.org') ? 'queue' : 'connected';
-    });
-    //* load/customize extensions
-    this.options.extensions?.reduce((arr, fn) => [...arr, fn(this.conn as Conn)], [] as (void | ((bot: Bot, options: IBotOptions) => void))[]).forEach((v) => !!v && this.conn?.bot.loadPlugin(v));
-    if (!!this.options.antiafk)
-      this.conn.bot.once('spawn', async () => {
-        (this.conn?.bot as any)?.afk?.setOptions(this.options.antiafk);
-        if (!this.conn?.pclient) await (this.conn?.bot as any)?.afk?.start();
-      });
-    this.conn.bot._client.once('end', this.onClientEnd.bind(this));
-    this.conn.bot._client.on('error', this.onClientEnd.bind(this));
-    this.conn.bot._client.on('packet', this.onClientPacket.bind(this));
-    this.webserver.isInQueue = true;
-  }
-  stopQueuing() {
-    this.state = 'idle';
-    this.stop();
-  }
-  reconnect() {
-    this.state = 'reconnect';
-    this.stop();
-  }
-  private stop() {
-    this.clearCurrentTimeout();
-    this.webserver.isInQueue = false;
-    this.conn?.disconnect();
-    this.conn = undefined;
-    this.setETA();
-  }
-  private updateQueuePosition() {
-    if (!['antiafk', 'connected'].includes(this.state)) return this.setETA();
-    this.webserver.queuePlace = 'FINISHED';
-    this.webserver.ETA = 'NOW';
-  }
-  command(cmd: string): string {
-    function preventAccidentalRestart(this: Proxy, cmd?: string): string | undefined {
-      if (['auth', 'queue'].includes(this.state)) return 'Already Queuing';
-      if (['antiafk', 'connected'].includes(this.state)) return 'Already Ingame';
-      if (!!cmd) {
-        this.clearCurrentTimeout();
-        this.extraStateInformation = util.timeStringtoDateTime(cmd);
-      }
-    }
-    let quitmsg: string | undefined;
-    switch (cmd) {
-      case 'start':
-        if (!!(quitmsg = preventAccidentalRestart.bind(this)())) return quitmsg;
-        this.startQueuing();
-        return 'Started Queuing';
-      case 'stop':
-        quitmsg = ['idle'].includes(this.state) ? 'Not Queuing currently' : `Stopped Queuing`;
-        this.stopQueuing();
-        return quitmsg;
-      case 'update':
-        return `current state: "${this.state}"`;
-      case 'help':
-        return `current state: "${this.state}"\nread the available commands on https://github.com/rob9315/2b2wts/blob/master/README.md`;
-      case 'exit':
-      case 'quit':
-        process.exit(0);
-      default:
-        switch (true) {
-          case /^start (\d|[0-1]\d|2[0-3]):[0-5]\d$/.test(cmd):
-            if (!!(quitmsg = preventAccidentalRestart.bind(this)(cmd))) return quitmsg;
-            this.state = 'timeStart';
-            this.setCurrentTimeout(this.startQueuing.bind(this), util.timeStringtoDateTime(cmd).diffNow().toMillis());
-            return `Queuing starting at ${this.extraStateInformation?.toLocaleString(DateTime.DATETIME_FULL)}`;
-          case /^play (\d|[0-1]\d|2[0-3]):[0-5]\d$/.test(cmd):
-            if (!!(quitmsg = preventAccidentalRestart.bind(this)(cmd))) return quitmsg;
-            this.state = 'timePlay';
-            this.setCurrentTimeout(this.timePlay.bind(this), this.options.extra?.reconnect?.timeout ?? 30000, this.extraStateInformation);
-            return `Waiting to Queue until the estimated waiting time is right so that you can play at ${this.extraStateInformation?.toLocaleString(DateTime.DATETIME_FULL)}`;
-          default:
-            return 'Unknown Command, maybe try `help`';
-        }
-    }
-  }
-  private setCurrentTimeout(callback: (...args: any[]) => void, ms?: number, ...args: any[]) {
-    if (!!this.timeout) clearTimeout(this.timeout);
-    this.timeout = setTimeout(callback, ms, ...args);
-    this.timeoutStartTime = DateTime.local();
-    this.timeoutDuration = ms;
-  }
-  private clearCurrentTimeout() {
-    if (!!this.timeout) clearTimeout(this.timeout);
-    this.timeoutStartTime = undefined;
-    this.timeoutDuration = undefined;
-  }
-  private async timePlay(time: DateTime) {
-    let queueLength = await util.getQueueLength();
-    if (typeof queueLength != 'number') return this.startQueuing();
-    if (time.diffNow().seconds < util.getWaitTime(queueLength, queueLength)) return this.startQueuing();
-    this.setCurrentTimeout(this.timePlay.bind(this), this.options.extra?.reconnect?.timeout ?? 30000, time);
+    if (this.options.webserver) this.webserver = new WebServer(this.options.webserver, this);
+    if (this.options.extra?.startImmediately) this.state = 'auth';
   }
 
-  private async onClientLogin(this: Proxy, client: Client) {
-    if (this.options.mcserver['online-mode'] && client.uuid !== this.conn?.bot._client.uuid) {
-      return client.end('whitelist is enabled and you are using the wrong account.');
+  set state(state: typeof Proxy.prototype._state) {
+    switch (this._state) {
+      case 'queue':
+        [this._queue, this._queuelength] = [undefined, undefined];
+        break;
+      case 'afk':
+        if (this.options.antiafk) (this.conn?.bot as any)?.afk?.stop();
+        break;
+      case 'reconnecting':
+        this.timeout = undefined;
+        break;
     }
-    if (!(this.conn?.bot?.entity as any)?.id) {
-      return client.end(`2b2w not connected\ncurrent status: '${this.state}'`);
+    switch (state) {
+      case 'idle':
+        this.conn?.disconnect();
+        this.conn = undefined;
+        break;
+      case 'auth':
+        this.options.mcclient.plugins = this.options.mcclient.plugins ?? {};
+        if (!!this.options.antiafk) this.options.mcclient.plugins['afk'] = require('mineflayer-antiafk');
+        this.conn = new Conn(this.options.mcclient);
+        //* load/customize extensions
+        this.options.extensions?.reduce((arr, fn) => [...arr, fn(this.conn as Conn)], [] as (void | ((bot: Bot, options: BotOptions) => void))[]).forEach((v) => !!v && this.conn?.bot.loadPlugin(v));
+        if (this.options.antiafk)
+          this.conn.bot.once('spawn', async () => {
+            (this.conn?.bot as any)?.afk?.setOptions(this.options.antiafk);
+            if ((this.conn?.bot as any)?.afk?.chat) (this.conn?.bot as any).afk.chat = function(){};
+            if (!this.conn?.pclient) await (this.conn?.bot as any)?.afk?.start();
+          });
+        this.conn.bot.on('login', () => (this.state = 'queue'));
+        this.conn.bot._client.on('end', () => (this.state = this.options.extra?.reconnect ? 'reconnecting' : 'idle'));
+        this.conn.bot._client.on('error', () => (this.state = this.options.extra?.reconnect ? 'reconnecting' : 'idle'));
+        this.conn.bot._client.on('packet', onClientPacket.bind(this));
+        break;
+      case 'afk':
+        if (this.options.antiafk)
+          (async () => {
+            while (!(this.conn?.bot as any)?.afk?.enabled) await (this.conn?.bot as any)?.afk?.start();
+          })();
+        break;
+      case 'reconnecting':
+        this.conn?.disconnect();
+        this.conn = undefined;
+        this.timeout = [() => (this.state = 'auth'), this.options.extra?.reconnect?.timeout as number];
+        break;
     }
-    await (this.conn?.bot as any)?.afk?.stop();
-    this.conn?.sendPackets(client);
-    this.conn?.link(client);
-    if (!!this.options.antiafk)
-      client.on('end', async () => {
-        this.state = 'antiafk';
-        while (!(this.conn?.bot as any)?.afk?.enabled) await (this.conn?.bot as any)?.afk?.start();
-      });
-    return;
+    this._state = state;
+    this.update();
   }
-  private onClientEnd(err?: Error | string) {
-    if (err === 'conn: disconnect called') return;
-    logErrorIfExists(err);
-    this.conn?.bot._client.removeListener('error', this.onClientEnd.bind(this));
-    if (this.state !== 'idle' && !!this.options.extra?.reconnect) {
-      this.stop();
-      if (err === 'noreconnect') return (this.state = 'idle');
-      log(`Connection reset by 2b2t server. Reconnecting in ${this.options.extra.reconnect.timeout}ms`);
-      this.state = 'reconnect';
-      this.setCurrentTimeout(() => {
-        //TODO! implement the pinging stuff
-        this.startQueuing();
-      }, this.options.extra.reconnect.timeout);
-    } else this.stopQueuing();
+  get state() {
+    return this._state;
   }
-  private onClientPacket(data: any, packetMeta: PacketMeta) {
-    switch (packetMeta.name) {
-      case 'playerlist_header':
-        if (this.state === 'queue') {
-          let prevQueuePlace = this.webserver.queuePlace;
-          let headermessage = JSON.parse(data.header);
-          try {
-            let queuePlace = headermessage.text.match(/(?<=Position in queue: (?:§.)*)(\d+|None)/)?.[0];
-            this.webserver.queuePlace = queuePlace === 'None' ? 'None' : Number(queuePlace);
-          } catch (e) {
-            this.state = 'connected';
-            this.updateQueuePosition();
-          }
-          if (prevQueuePlace === 'None' && this.webserver.queuePlace !== 'None') {
-            this.queueStartPlace = this.webserver.queuePlace as number;
-            this.queueStartTime = DateTime.local();
-          }
-          if (prevQueuePlace !== this.webserver.queuePlace) this.updateQueuePosition();
-        }
-        break;
-      case 'chat':
-        if (this.state === 'queue') {
-          let chatMessage = JSON.parse(data.message);
-          if (chatMessage.text === 'Connecting to the server...') {
-            // if (this.options.extra?.expandQueueData && !!this.queueStartPlace && !!this.queueStartTime) expandQueueData(this.queueStartPlace, this.queueStartTime);
-            if (this.webserver.restartQueue && !!this.conn?.pclient) this.reconnect();
-            else {
-              this.state = !this.conn?.pclient && this.options.antiafk ? 'antiafk' : 'connected';
-              this.updateQueuePosition();
-              this.logActivity('Queue is finished');
-            }
-          }
-        }
-        break;
-      case 'kick_disconnect':
-        this.onClientEnd(new Error(JSON.parse(data.reason).text ?? JSON.stringify(data)));
-        break;
+
+  set setqueue(position: number) {
+    if (this._queue == position) return;
+    this._queue = position;
+    if (!this._queuelength) this._queuelength = position;
+    this.update();
+  }
+  get getqueue() {
+    if (!this._queue || !this._queuelength) return undefined;
+    return {
+      position: this._queue,
+      length: this._queuelength,
+      eta: eta(this._queue, this._queuelength),
+    };
+  }
+
+  private set timeout(options: [callback: (...args: any[]) => any, duration: number, ...args: any[]] | undefined) {
+    if (this._timeout) clearTimeout(this._timeout);
+    this._timeout = options ? Object.assign(setTimeout(...options), { start: Date.now(), end: Date.now() }) : undefined;
+  }
+
+  update() {
+    if (this.state === 'queue' && typeof this.getqueue == 'object') {
+      let { position, eta } = this.getqueue;
+      this.server.motd = `Position: ${position}\tETA: ${Math.floor(eta / 3600)}:${Math.floor((eta / 60) % 60)}h`;
+      console.log(`Position: ${position}\tETA: ${Math.floor(eta / 3600)}:${Math.floor((eta / 60) % 60)}h`);
+    } else {
+      this.server.motd = this.state;
+      console.log(this._state);
     }
+    this.webserver?.update();
   }
 }
+
+class WebServer extends HTTP {
+  private serve = serveStatic('./frontend');
+  private io = new IO({ serveClient: true }).listen(this);
+  private sockets = <Socket[]>[];
+  constructor(public options: WebServerOptions, private proxy: Proxy) {
+    super((req, res) => this.serve(req, res, () => {}));
+    this.listen(this.options.port, this.options.host);
+    this.io
+      .use((socket, next) => {
+        if (!this.options.password && this.options.password == socket.request.headers.authorization) next();
+        else next(new Error('ClientError'));
+      })
+      .on('connect', (socket) => this.sockets.push(socket))
+      .on('start', () => {
+        if (this.proxy.state === 'idle') this.proxy.state = 'auth';
+      })
+      .on('stop', () => (this.proxy.state = 'idle'));
+  }
+  get status() {
+    return {
+      state: this.proxy.state,
+      queue: this.proxy.getqueue,
+    };
+  }
+
+  update() {
+    const status = this.status;
+    this.sockets.forEach((socket) => socket.emit('update', status));
+  }
+}
+
+// 0   300
+// 280 300
+// a - b
+
+export function eta(position: number, length: number) {
+  const a = (position: number) => Math.log((position + 150) / (length + 150)) / b;
+  const b = Math.log(linear(length, ...queueData)[0]);
+  return a(0) - a(position);
+}
+
+export const linear = <T extends number[], K extends number[]>(x: number | K, knownX: T, knownY: T): K => {
+  knownX.push(knownX[knownX.length - 1] + (knownX[0] > knownX[1] ? -1 : 1));
+  knownY.push(knownY[knownY.length - 1]);
+  knownX.unshift(knownX[0] + (knownX[0] < knownX[1] ? -1 : 1));
+  knownY.unshift(knownY[0]);
+  return everpolate.linear(x, knownX, knownY);
+};
+
+function onClientPacket(this: Proxy, data: any, { name }: PacketMeta) {
+  if (this.state == 'queue') {
+    let pos: number | undefined;
+    switch (name) {
+      case 'playerlist_header':
+        pos = parseTabMenu(data);
+        break;
+      case 'chat':
+        pos = parseChatMessage(data);
+        break;
+      case 'map_chunk':
+        this.state = this.conn?.pclient ? 'connected' : 'afk';
+    }
+    if (pos) this.setqueue = pos;
+  }
+  if (name == 'kick_disconnect') this.options.extra?.reconnect ? 'reconnecting' : 'idle';
+}
+
+async function onServerLogin(this: Proxy, client: Client) {
+  if (this.options.mcserver['online-mode'] && client.uuid !== this.conn?.bot._client.uuid) {
+    return client.end('whitelist is enabled, make sure you are using the correct account.');
+  }
+  if (!this.conn?.bot?.entity?.id) {
+    return client.end(`not connected yet...\ncurrent state: '${this.state}'`);
+  }
+  if (this.state == 'afk') this.state = 'connected';
+  this.conn?.sendPackets(client);
+  this.conn?.link(client);
+  client.on('end', () => (this.state == 'queue' ? undefined : (this.state = 'afk')));
+}
+
+export function parseChatMessage(data: { message: string }) {
+  try {
+    return Number(JSON.parse(data.message).extra[1].text);
+  } catch {}
+}
+
+export function parseTabMenu(data: { header: string }) {
+  try {
+    return Number((JSON.parse(data.header)?.text as string).match(/(?<=Position in queue: (?:§.)*)\d+/)?.[0]);
+  } catch {}
+}
+
+const queueData: [number[], number[]] = [
+  [93, 207, 231, 257, 412, 418, 486, 506, 550, 586, 666, 758, 789, 826],
+  [0.9998618838664679, 0.9999220416881794, 0.9999234240704379, 0.9999291667668093, 0.9999410569845172, 0.9999168965649361, 0.9999440195022513, 0.9999262577896301, 0.9999462301738332, 0.999938895110192, 0.9999219189483673, 0.9999473463335498, 0.9999337457796981, 0.9999279556964097],
+];
