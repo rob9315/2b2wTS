@@ -1,16 +1,15 @@
 import { Conn } from '@rob9315/mcproxy';
-import { Client, createServer, PacketMeta, Server } from 'minecraft-protocol';
+import { Client, createServer } from 'minecraft-protocol';
 import { Client as Discord, Intents } from 'discord.js';
-import { ProxyOptions, WebServerOptions } from './config';
-import { Server as HTTP } from 'http';
-import serveStatic from 'serve-static';
-import { Server as IO, Socket } from 'socket.io';
-//@ts-ignore (no type definitions)
-import everpolate from 'everpolate';
-import { onDiscordMessage } from './discord';
+import { WebServer } from './misc/webserver';
+import { onDiscordMessage } from './misc/discord';
+import { eta } from './misc/queue';
 
+import type { ProxyOptions } from './misc/config';
 import type { Bot, BotOptions } from 'mineflayer';
+import type { PacketMeta, Server } from 'minecraft-protocol';
 
+// the Proxy class, instantiated by passing ProxyOptions
 export class Proxy {
   conn: Conn | undefined;
   server: Server;
@@ -23,7 +22,7 @@ export class Proxy {
   private _state: 'idle' | 'condition' | 'auth' | 'connected' | 'afk' | 'reconnecting' | 'queue' = 'idle';
 
   private _queue: number | undefined;
-  private _queuelength: number | undefined;
+  private _teams: { [name: string]: string[] } = {};
 
   private _timeout: (NodeJS.Timeout & { start: number; end: number }) | undefined;
 
@@ -40,7 +39,7 @@ export class Proxy {
   set state(state: typeof Proxy.prototype._state) {
     switch (this._state) {
       case 'queue':
-        [this._queue, this._queuelength] = [undefined, undefined];
+        [this._queue, this._teams] = [undefined, {}];
         break;
       case 'afk':
         if (this.options.antiafk) (this.conn?.bot as any)?.afk?.stop();
@@ -63,7 +62,7 @@ export class Proxy {
         if (this.options.antiafk)
           this.conn.bot.once('spawn', async () => {
             (this.conn?.bot as any)?.afk?.setOptions(this.options.antiafk);
-            if ((this.conn?.bot as any)?.afk?.chat) (this.conn?.bot as any).afk.chat = function(){};
+            if ((this.conn?.bot as any)?.afk?.chat) (this.conn?.bot as any).afk.chat = function () {};
             if (!this.conn?.pclient) await (this.conn?.bot as any)?.afk?.start();
           });
         this.conn.bot.on('login', () => (this.state = 'queue'));
@@ -90,19 +89,45 @@ export class Proxy {
     return this._state;
   }
 
+  set teams({ team, mode, players }: { team: string; mode: number; players: string[] }) {
+    if (!this._teams[team]) this._teams[team] = [];
+    switch (mode) {
+      case 0:
+        this._teams[team] = players;
+        console.log('logged in players:', players.join(', '));
+        break;
+      case 1:
+        this._teams[team] = [];
+        console.log('team list reset');
+        break;
+      case 3:
+        this._teams[team].push(...players);
+        console.log(players.join(', '), 'joined');
+        break;
+      case 4:
+        console.log(players.map((p) => `${p} (${this._teams[team].findIndex((v) => v == p) + 1})`).join(', '), 'left');
+        this._teams[team] = this._teams[team].filter((player) => !players.includes(player));
+        break;
+      default:
+        return;
+    }
+    this.update();
+    // console.log(players.join(', '), mode == 3 ? 'joined' : mode == 4 ? 'left' : mode == 0 ? 'are in' : '?', 'queue');
+  }
   set setqueue(position: number) {
     if (this._queue == position) return;
     this._queue = position;
-    if (!this._queuelength) this._queuelength = position;
     this.update();
   }
   get getqueue() {
-    if (!this._queue || !this._queuelength) return undefined;
-    return {
-      position: this._queue,
-      length: this._queuelength,
-      eta: eta(this._queue, this._queuelength),
-    };
+    let position =
+      Object.values(this._teams)
+        .reduce((p, v) => (v.includes(this.conn?.bot.username as string) ? v : p), [])
+        .findIndex((v) => v == this.conn?.bot.username) + 1;
+    position = position == 0 ? this._queue ?? position : position;
+    let length: number | undefined = Object.values(this._teams).reduce((p, v) => v.length + p, 0);
+    length = length == 0 ? undefined : length;
+    return { position, length, eta: length ? eta(position, length) : undefined };
   }
 
   private set timeout(options: [callback: (...args: any[]) => any, duration: number, ...args: any[]] | undefined) {
@@ -112,9 +137,12 @@ export class Proxy {
 
   update() {
     if (this.state === 'queue' && typeof this.getqueue == 'object') {
-      let { position, eta } = this.getqueue;
-      this.server.motd = `Position: ${position}\tETA: ${Math.floor(eta / 3600)}:${Math.floor((eta / 60) % 60)}h`;
-      console.log(`Position: ${position}\tETA: ${Math.floor(eta / 3600)}:${Math.floor((eta / 60) % 60)}h`);
+      let { position, eta, length } = this.getqueue,
+        strTime = eta ? `${Math.floor(eta / 3600)}:`.padStart(3, '0') + `${Math.floor((eta / 60) % 60)}`.padStart(2, '0') : '',
+        strPos = `${position}`.padStart(3) + length ? '/' + `${length}`.padStart(3) : '',
+        str = `Position: ${strPos}` + strTime ? `ETA: ${strTime}h` : '';
+      this.server.motd = str;
+      console.log(str);
     } else {
       this.server.motd = this.state;
       console.log(this._state);
@@ -122,55 +150,6 @@ export class Proxy {
     this.webserver?.update();
   }
 }
-
-class WebServer extends HTTP {
-  private serve = serveStatic('./frontend');
-  private io = new IO({ serveClient: true }).listen(this);
-  private sockets = <Socket[]>[];
-  constructor(public options: WebServerOptions, private proxy: Proxy) {
-    super((req, res) => this.serve(req, res, () => {}));
-    this.listen(this.options.port, this.options.host);
-    this.io
-      .use((socket, next) => {
-        if (!this.options.password && this.options.password == socket.request.headers.authorization) next();
-        else next(new Error('ClientError'));
-      })
-      .on('connect', (socket) => this.sockets.push(socket))
-      .on('start', () => {
-        if (this.proxy.state === 'idle') this.proxy.state = 'auth';
-      })
-      .on('stop', () => (this.proxy.state = 'idle'));
-  }
-  get status() {
-    return {
-      state: this.proxy.state,
-      queue: this.proxy.getqueue,
-    };
-  }
-
-  update() {
-    const status = this.status;
-    this.sockets.forEach((socket) => socket.emit('update', status));
-  }
-}
-
-// 0   300
-// 280 300
-// a - b
-
-export function eta(position: number, length: number) {
-  const a = (position: number) => Math.log((position + 150) / (length + 150)) / b;
-  const b = Math.log(linear(length, ...queueData)[0]);
-  return a(0) - a(position);
-}
-
-export const linear = <T extends number[], K extends number[]>(x: number | K, knownX: T, knownY: T): K => {
-  knownX.push(knownX[knownX.length - 1] + (knownX[0] > knownX[1] ? -1 : 1));
-  knownY.push(knownY[knownY.length - 1]);
-  knownX.unshift(knownX[0] + (knownX[0] < knownX[1] ? -1 : 1));
-  knownY.unshift(knownY[0]);
-  return everpolate.linear(x, knownX, knownY);
-};
 
 function onClientPacket(this: Proxy, data: any, { name }: PacketMeta) {
   if (this.state == 'queue') {
@@ -184,6 +163,10 @@ function onClientPacket(this: Proxy, data: any, { name }: PacketMeta) {
         break;
       case 'map_chunk':
         this.state = this.conn?.pclient ? 'connected' : 'afk';
+        break;
+      case 'teams':
+        this.teams = data;
+        break;
     }
     if (pos) this.setqueue = pos;
   }
@@ -214,8 +197,3 @@ export function parseTabMenu(data: { header: string }) {
     return Number((JSON.parse(data.header)?.text as string).match(/(?<=Position in queue: (?:§.)*)\d+/)?.[0]);
   } catch {}
 }
-
-const queueData: [number[], number[]] = [
-  [93, 207, 231, 257, 412, 418, 486, 506, 550, 586, 666, 758, 789, 826],
-  [0.9998618838664679, 0.9999220416881794, 0.9999234240704379, 0.9999291667668093, 0.9999410569845172, 0.9999168965649361, 0.9999440195022513, 0.9999262577896301, 0.9999462301738332, 0.999938895110192, 0.9999219189483673, 0.9999473463335498, 0.9999337457796981, 0.9999279556964097],
-];
