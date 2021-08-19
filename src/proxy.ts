@@ -61,9 +61,9 @@ export class Proxy {
         this.options.extensions?.reduce((arr, fn) => [...arr, fn(this.conn as Conn)], [] as (void | ((bot: Bot, options: BotOptions) => void))[]).forEach((v) => !!v && this.conn?.bot.loadPlugin(v));
         if (this.options.antiafk)
           this.conn.bot.once('spawn', async () => {
-            (this.conn?.bot as any).afk.setOptions(this.options.antiafk);
+            (this.conn?.bot as any)?.afk.setOptions(this.options.antiafk);
             if (!this.options.antiafk?.chatting || this.options.antiafk.chatMessages?.length == 0) {
-              (this.conn?.bot as any).afk.chat = () => {};
+              Object.assign((this.conn?.bot as any)?.afk, { chat: () => {} });
             }
           });
         this.conn.bot.on('login', () => (this.state = 'queue'));
