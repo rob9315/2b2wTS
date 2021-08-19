@@ -69,7 +69,7 @@ export class AntiAFKoptions {
   chatting = false;
   chatMessages?: string[] = [];
   chatInterval? = 300000;
-  killauraEnabled = true;
+  killauraEnabled = false;
   autoEatEnabled = true;
   autoEatConfig? = new AutoEatConfig();
 }

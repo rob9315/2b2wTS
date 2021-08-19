@@ -54,16 +54,17 @@ export class Proxy {
         this.conn = undefined;
         break;
       case 'auth':
-        this.options.mcclient.plugins = this.options.mcclient.plugins ?? {};
+        this.options.mcclient.plugins ??= {};
         if (!!this.options.antiafk) this.options.mcclient.plugins['afk'] = require('mineflayer-antiafk');
         this.conn = new Conn(this.options.mcclient);
         //* load/customize extensions
         this.options.extensions?.reduce((arr, fn) => [...arr, fn(this.conn as Conn)], [] as (void | ((bot: Bot, options: BotOptions) => void))[]).forEach((v) => !!v && this.conn?.bot.loadPlugin(v));
         if (this.options.antiafk)
           this.conn.bot.once('spawn', async () => {
-            (this.conn?.bot as any)?.afk?.setOptions(this.options.antiafk);
-            if ((this.conn?.bot as any)?.afk?.chat) (this.conn?.bot as any).afk.chat = function () {};
-            if (!this.conn?.pclient) await (this.conn?.bot as any)?.afk?.start();
+            (this.conn?.bot as any).afk.setOptions(this.options.antiafk);
+            if (!this.options.antiafk?.chatting || this.options.antiafk.chatMessages?.length == 0) {
+              (this.conn?.bot as any).afk.chat = () => {};
+            }
           });
         this.conn.bot.on('login', () => (this.state = 'queue'));
         this.conn.bot._client.on('end', () => (this.state = this.options.extra?.reconnect ? 'reconnecting' : 'idle'));
