@@ -184,7 +184,7 @@ async function onServerLogin(this: Proxy, client: Client) {
   if (this.state == 'afk') this.state = 'connected';
   this.conn?.sendPackets(client);
   this.conn?.link(client);
-  client.on('end', () => (this.state == 'queue' ? undefined : (this.state = 'afk')));
+  client.on('end', () => (this.state == 'queue' || !!this.conn?.pclient ? undefined : (this.state = 'afk')));
 }
 
 export function parseChatMessage(data: { message: string }) {
