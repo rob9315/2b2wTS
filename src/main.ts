@@ -38,17 +38,17 @@ async function command(proxy: Proxy, cmd: string | null) {
       console.log('Stopped the Proxy!');
       break;
     case 'info':
-      console.log`-----CONFIG-----`;
-      console.log`client:    ${proxy.conn?.bot.username} (${proxy.options.mcclient.username})`;
-      console.log`remote:    ${proxy.options.mcclient.host}:${proxy.options.mcclient.port}`;
-      console.log`mcserver:  ${proxy.options.mcserver.host}:${proxy.options.mcserver.port}`;
-      console.log`webserver: ${proxy.options.webserver ? proxy.options.webserver.host + ':' + proxy.options.webserver.port : 'disabled'}`;
-      console.log`discord:   ${proxy.options.discord ? proxy.discord?.user?.tag : 'disabled'}`;
-      console.log`-----STATE-----`;
-      console.log`current:   '${proxy.state}'`;
-      console.log`client:    ${proxy.conn ? `${proxy.conn.pclient?.username} (${proxy.conn.pclient?.socket.remoteAddress}:${proxy.conn.pclient?.socket.remotePort})` : 'nobody'}`;
-      console.log`position:  ${proxy.conn?.bot.entity.position}`;
-      console.log`health:    ${proxy.conn?.bot.health.toString().padStart(2)}/20`;
+      console.log(`-----CONFIG-----
+client:    ${proxy.conn?.bot.username} (${proxy.options.mcclient.username})
+remote:    ${proxy.options.mcclient.host}:${proxy.options.mcclient.port}
+mcserver:  ${proxy.options.mcserver.host}:${proxy.options.mcserver.port}
+webserver: ${proxy.options.webserver ? proxy.options.webserver.host + ':' + proxy.options.webserver.port : 'disabled'}
+discord:   ${proxy.options.discord ? proxy.discord?.user?.tag : 'disabled'}
+-----STATE-----
+current:   '${proxy.state}'
+client:    ${proxy.conn ? `${proxy.conn.pclient?.username} (${proxy.conn.pclient?.socket.remoteAddress}:${proxy.conn.pclient?.socket.remotePort})` : 'nobody'}
+position:  ${proxy.conn?.bot.entity.position}
+health:    ${proxy.conn?.bot.health.toString().padStart(2)}/20`);
       break;
     default:
       break;
