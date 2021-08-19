@@ -21,7 +21,7 @@ try {
 })();
 
 async function command(proxy: Proxy, cmd: string | null) {
-  switch (cmd?.split('0')[0]) {
+  switch (cmd?.split(' ')[0]) {
     case null:
       break;
     case 'quit':
@@ -38,7 +38,8 @@ async function command(proxy: Proxy, cmd: string | null) {
       console.log('Stopped the Proxy!');
       break;
     case 'info':
-      console.log(`-----CONFIG-----
+      console.log(
+        `-----CONFIG-----
 client:    ${proxy.conn?.bot.username} (${proxy.options.mcclient.username})
 remote:    ${proxy.options.mcclient.host}:${proxy.options.mcclient.port}
 mcserver:  ${proxy.options.mcserver.host}:${proxy.options.mcserver.port}
@@ -46,9 +47,12 @@ webserver: ${proxy.options.webserver ? proxy.options.webserver.host + ':' + prox
 discord:   ${proxy.options.discord ? proxy.discord?.user?.tag : 'disabled'}
 -----STATE-----
 current:   '${proxy.state}'
-client:    ${proxy.conn ? `${proxy.conn.pclient?.username} (${proxy.conn.pclient?.socket.remoteAddress}:${proxy.conn.pclient?.socket.remotePort})` : 'nobody'}
+-----INGAME-----
 position:  ${proxy.conn?.bot.entity.position}
-health:    ${proxy.conn?.bot.health.toString().padStart(2)}/20`);
+health:    ${proxy.conn?.bot.health.toString().padStart(2)}/20
+-----CONN-----
+main:      ${proxy.conn?.pclient ? `${proxy.conn.pclient?.username} (${proxy.conn.pclient?.socket.remoteAddress}:${proxy.conn.pclient?.socket.remotePort})` : 'nobody'}
+others:    ${proxy.conn && proxy.conn.pclients.length > 1 ? proxy.conn?.pclients.map((client) => (client != proxy.conn?.pclient ? `\n - ${client.username}  (${proxy.conn?.pclient?.socket.remoteAddress}:${proxy.conn?.pclient?.socket.remotePort})` : '')).join('') : 'none'}`);
       break;
     default:
       break;
