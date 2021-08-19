@@ -121,14 +121,10 @@ export class Proxy {
     this.update();
   }
   get getqueue() {
-    let position =
-      Object.values(this._teams)
-        .reduce((p, v) => (v.includes(this.conn?.bot.username as string) ? v : p), [])
-        .findIndex((v) => v == this.conn?.bot.username) + 1;
-    position = position == 0 ? this._queue ?? position : position;
+    let position = this._queue;
     let length: number | undefined = Object.values(this._teams).reduce((p, v) => v.length + p, 0);
     length = length == 0 ? undefined : length;
-    return { position, length, eta: length ? eta(position, length) : undefined };
+    return { position, length, eta: position && length ? eta(position, length) : undefined };
   }
 
   private set timeout(options: [callback: (...args: any[]) => any, duration: number, ...args: any[]] | undefined) {
