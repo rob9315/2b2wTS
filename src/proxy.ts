@@ -80,7 +80,7 @@ export class Proxy {
       case 'reconnecting':
         this.conn?.disconnect();
         this.conn = undefined;
-        this.timeout = [() => (this.state = 'auth'), this.options.extra?.reconnect?.timeout as number];
+        this.timeout = [() => (this.state = 'auth'), this.options.extra?.reconnect?.timeout ?? 30000];
         break;
     }
     this._state = state;
@@ -175,13 +175,18 @@ async function onServerLogin(this: Proxy, client: Client) {
   if (this.options.mcserver['online-mode'] && client.uuid !== this.conn?.bot._client.uuid) {
     return client.end('whitelist is enabled, make sure you are using the correct account.');
   }
-  if (!this.conn?.bot?.entity?.id) {
+  if (this.state == 'reconnecting') {
+    this.state = 'auth';
+    await new Promise<void>((res) => this.conn?.bot.once('login', res));
+  } else if (!this.conn?.bot?.entity?.id) {
     return client.end(`not connected yet...\ncurrent state: '${this.state}'`);
   }
   this.conn?.sendPackets(client);
   this.conn?.link(client);
   this.state = 'connected';
-  client.on('end', () => (this.state == 'queue' || !!this.conn?.pclient ? undefined : (this.state = 'afk')));
+  client.on('end', () => {
+    if (this.state == 'connected' && !!this.conn?.pclient) this.state = 'afk';
+  });
 }
 
 export function parseChatMessage(data: { message: string }) {
