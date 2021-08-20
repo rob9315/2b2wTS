@@ -27,7 +27,7 @@ export class Proxy {
   private _timeout: (NodeJS.Timeout & { start: number; end: number }) | undefined;
 
   constructor(public options: ProxyOptions) {
-    this.server = createServer(this.options.mcserver).on('login', onServerLogin.bind(this));
+    this.server = createServer({ beforeLogin: beforeLogin.bind(this), ...this.options.mcserver }).on('login', onServerLogin.bind(this));
     if (this.options.discord) {
       this.discord = new Discord({ ws: { intents: Intents.ALL } }).on('message', onDiscordMessage);
       this.discord.login(this.options.discord.token);
@@ -95,25 +95,19 @@ export class Proxy {
     switch (mode) {
       case 0:
         this._teams[team] = players;
-        console.log('logged in players:', players.join(', '));
         break;
       case 1:
         this._teams[team] = [];
-        console.log('team list reset');
         break;
       case 3:
         this._teams[team].push(...players);
-        console.log(players.join(', '), 'joined');
         break;
       case 4:
-        console.log(players.map((p) => `${p} (${this._teams[team].findIndex((v) => v == p) + 1})`).join(', '), 'left');
         this._teams[team] = this._teams[team].filter((player) => !players.includes(player));
         break;
       default:
         return;
     }
-    this.update();
-    // console.log(players.join(', '), mode == 3 ? 'joined' : mode == 4 ? 'left' : mode == 0 ? 'are in' : '?', 'queue');
   }
   set setqueue(position: number) {
     if (this._queue == position) return;
@@ -133,16 +127,18 @@ export class Proxy {
   }
 
   update() {
-    if (this.state === 'queue' && typeof this.getqueue == 'object') {
-      let { position, eta, length } = this.getqueue,
+    let queue = this.getqueue;
+    if (this.state === 'queue' && queue.position) {
+      let { position, eta, length } = queue,
         strTime = eta ? `${Math.floor(eta / 3600)}:`.padStart(3, '0') + `${Math.floor((eta / 60) % 60)}`.padStart(2, '0') : '',
-        strPos = `${position}`.padStart(3) + length ? '/' + `${length}`.padStart(3) : '',
-        str = `Position: ${strPos}` + strTime ? `ETA: ${strTime}h` : '';
+        strPos = `${position}`.padStart(3) + (length ? '/' + `${length}`.padStart(3) : ''),
+        str = position ? `Position: ${strPos}` + (strTime ? ` ETA: ${strTime}h` : '') : '';
       this.server.motd = str;
       console.log(str);
     } else {
-      this.server.motd = this.state;
-      console.log(this._state);
+      let str = this.state == 'queue' ? 'loading queue data...' : this.state;
+      this.server.motd = str;
+      console.log(str);
     }
     this.webserver?.update();
   }
@@ -193,4 +189,8 @@ export function parseTabMenu(data: { header: string }) {
   try {
     return Number((JSON.parse(data.header)?.text as string).match(/(?<=Position in queue: (?:§.)*)\d+/)?.[0]);
   } catch {}
+}
+
+export function beforeLogin(this: Proxy, client: Client) {
+  // client.uuid = this.conn?.bot._client.uuid ?? client.uuid;
 }

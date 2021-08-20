@@ -10,8 +10,6 @@ const q = (questionString: string, prevOption: string, blankStringValid?: boolea
   return answer === '' && !blankStringValid ? prevOption : answer;
 };
 
-
-
 // bool check
 const bool = (x: string | boolean) => typeof x == 'boolean' || !!x.match(/^([YNyn]|yes|no|true|false)$/);
 
@@ -135,10 +133,10 @@ export async function setup(config?: ProxyOptions) {
               }
             : { chatting: false }),
           fishing: b('Do you want to enable AFK fishing?', !!config.antiafk?.fishing),
-          minWalkingTime: n('Enter the minimum walking time (ms)', config.antiafk?.minWalkingTime as number),
-          maxWalkingTime: n('Enter the maximum walking time (ms)', config.antiafk?.maxWalkingTime as number),
-          minActionsInterval: n('Enter the minimum actions interval (ms)', config.antiafk?.minActionsInterval as number),
-          maxActionsInterval: n('Enter the maximum actions interval (ms)', config.antiafk?.maxActionsInterval as number),
+          minWalkingTime: n('Enter the minimum walking time (ms)', config.antiafk?.minWalkingTime ?? (allDefaults.antiafk?.minWalkingTime as number)),
+          maxWalkingTime: n('Enter the maximum walking time (ms)', config.antiafk?.maxWalkingTime ?? (allDefaults.antiafk?.maxWalkingTime as number)),
+          minActionsInterval: n('Enter the minimum actions interval (ms)', config.antiafk?.minActionsInterval ?? (allDefaults.antiafk?.minActionsInterval as number)),
+          maxActionsInterval: n('Enter the maximum actions interval (ms)', config.antiafk?.maxActionsInterval ?? (allDefaults.antiafk?.maxActionsInterval as number)),
           killauraEnabled: b('Do you want to enable KillAura while AFK?', !!config.antiafk?.killauraEnabled),
           actions: undefinedIfNone(
             q(`Enter the actions to do while AFK (and not fishing), more information on this option here: https://github.com/etiaro/mineflayer-antiafk#actions. Separate them with a comma. (more information at https://github.com/rob9315/2b2wts/blob/master/README.md)`, config.antiafk?.actions ? String(config.antiafk?.actions) : '')
