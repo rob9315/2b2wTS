@@ -127,19 +127,24 @@ export class Proxy {
   }
 
   update() {
-    let queue = this.getqueue;
-    if (this.state === 'queue' && queue.position) {
-      let { position, eta, length } = queue,
-        strTime = eta ? `${Math.floor(eta / 3600)}:`.padStart(3, '0') + `${Math.floor((eta / 60) % 60)}`.padStart(2, '0') : '',
-        strPos = `${position}`.padStart(3) + (length ? '/' + `${length}`.padStart(3) : ''),
-        str = position ? `Position: ${strPos}` + (strTime ? ` ETA: ${strTime}h` : '') : '';
-      this.server.motd = str;
-      console.log(str);
-    } else {
-      let str = this.state == 'queue' ? 'loading queue data...' : this.state;
-      this.server.motd = str;
-      console.log(str);
+    let str: string;
+    switch (this.state) {
+      case 'queue':
+        let { position, eta, length } = this.getqueue;
+        if (position != undefined) {
+          let strTime = eta ? `${Math.floor(eta / 3600)}:`.padStart(3, '0') + `${Math.floor((eta / 60) % 60)}`.padStart(2, '0') : '';
+          let strPos = `${position}`.padStart(3) + (length ? '/' + `${length}`.padStart(3) : '');
+          str = position ? `Position: ${strPos}` + (strTime ? ` ETA: ${strTime}h` : '') : '';
+        } else str = this.state;
+        break;
+      case 'connected':
+        str = `${this.conn?.pclient?.username} ${this.state}`;
+        break;
+      default:
+        str = this.state;
     }
+    this.server.motd = str;
+    console.log(str);
     this.webserver?.update();
   }
 }
@@ -173,9 +178,9 @@ async function onServerLogin(this: Proxy, client: Client) {
   if (!this.conn?.bot?.entity?.id) {
     return client.end(`not connected yet...\ncurrent state: '${this.state}'`);
   }
-  if (this.state == 'afk') this.state = 'connected';
   this.conn?.sendPackets(client);
   this.conn?.link(client);
+  this.state = 'connected';
   client.on('end', () => (this.state == 'queue' || !!this.conn?.pclient ? undefined : (this.state = 'afk')));
 }
 
