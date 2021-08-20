@@ -46,15 +46,22 @@ mcserver:  ${proxy.options.mcserver.host}:${proxy.options.mcserver.port}
 webserver: ${proxy.options.webserver ? proxy.options.webserver.host + ':' + proxy.options.webserver.port : 'disabled'}
 discord:   ${proxy.options.discord ? proxy.discord?.user?.tag : 'disabled'}
 -----STATE-----
-current:   '${proxy.state}'
------INGAME-----
+current:   '${proxy.state}'`
+      );
+      switch (proxy.state) {
+        case 'connected':
+        case 'afk':
+          console.log(`-----INGAME-----
 position:  ${proxy.conn?.bot.entity.position}
-health:    ${proxy.conn?.bot.health.toString().padStart(2)}/20
------CONN-----
+health:    ${(proxy.conn?.bot.health ? proxy.conn?.bot.health.toString() : '?').padStart(2)}/20`);
+      }
+      if (proxy.conn && proxy.conn.pclients.length > 0)
+        console.log(`-----CONNS-----
 main:      ${proxy.conn?.pclient ? `${proxy.conn.pclient?.username} (${proxy.conn.pclient?.socket.remoteAddress}:${proxy.conn.pclient?.socket.remotePort})` : 'nobody'}
 others:    ${proxy.conn && proxy.conn.pclients.length > 1 ? proxy.conn?.pclients.map((client) => (client != proxy.conn?.pclient ? `\n - ${client.username}  (${proxy.conn?.pclient?.socket.remoteAddress}:${proxy.conn?.pclient?.socket.remotePort})` : '')).join('') : 'none'}`);
       break;
     default:
+      console.log('Unknown command');
       break;
   }
 }
