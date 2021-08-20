@@ -63,7 +63,7 @@ export class Proxy {
           this.conn.bot.once('spawn', async () => {
             (this.conn?.bot as any)?.afk.setOptions(this.options.antiafk);
             if (!this.options.antiafk?.chatting || this.options.antiafk.chatMessages?.length == 0) {
-              Object.assign((this.conn?.bot as any)?.afk, { chat: () => {} });
+              Object.assign((this.conn?.bot as any)?.afk ?? {}, { chat: () => {} });
             }
           });
         this.conn.bot.on('login', () => (this.state = 'queue'));
