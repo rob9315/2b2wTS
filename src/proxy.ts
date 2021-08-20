@@ -185,7 +185,7 @@ async function onServerLogin(this: Proxy, client: Client) {
   this.conn?.link(client);
   this.state = 'connected';
   client.on('end', () => {
-    if (this.state == 'connected' && !!this.conn?.pclient) this.state = 'afk';
+    if (this.state == 'connected' && !this.conn?.pclient) this.state = 'afk';
   });
 }
 
