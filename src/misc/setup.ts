@@ -69,7 +69,12 @@ export async function setup(config?: ProxyOptions) {
   }
   displayObject(config.mcserver);
   if (b('Do you want to edit the mcserver options?', false)) {
-    config.mcserver['online-mode'] = config.mcclient.username.match(/.+@.+\..+/) ? b('Do you want to enable the whitelist? (only your account will be able to join, you will have to be logged in)', config.mcserver['online-mode'] ?? (allDefaults.mcserver['online-mode'] as boolean)) : (allDefaults.mcserver['online-mode'] as boolean);
+    config.mcserver['online-mode'] = config.mcclient.username.match(/.+@.+\..+/) ? b('Do you want to enable the whitelist? (this will enable online-mode to ensure real minecraft accounts)', config.mcserver['online-mode'] ?? (allDefaults.mcserver['online-mode'] as boolean)) : (allDefaults.mcserver['online-mode'] as boolean);
+    config.mcserver.whitelist = config.mcserver['online-mode']
+      ? q("Enter additional usernames allowed to join this proxy (or don't). Separate them with a comma or leave blank. (more information at https://github.com/rob9315/2b2wts/blob/master/README.md)", config.mcserver.whitelist ? String(config.mcserver.whitelist) : '', true)
+          .split(',')
+          .filter((x) => x != '')
+      : [];
     config.mcserver.host = q('Please enter the hostname you want to host 2b2w on', config.mcserver.host ?? (allDefaults.mcserver.host as string));
     config.mcserver.port = i('Please enter the port you want to host 2b2w on', config.mcserver.port ?? (allDefaults.mcserver.port as number));
   }

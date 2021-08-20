@@ -172,7 +172,7 @@ function onClientPacket(this: Proxy, data: any, { name }: PacketMeta) {
 }
 
 async function onServerLogin(this: Proxy, client: Client) {
-  if (this.options.mcserver['online-mode'] && client.uuid !== this.conn?.bot._client.uuid) {
+  if (this.options.mcserver['online-mode'] && client.uuid !== this.conn?.bot._client.uuid && !this.options.mcserver.whitelist?.includes(client.username)) {
     return client.end('whitelist is enabled, make sure you are using the correct account.');
   }
   // if (this.state == 'reconnecting') {

@@ -4,7 +4,7 @@ import type { Conn } from '@rob9315/mcproxy';
 
 export class ProxyOptions {
   mcclient: IBotOptions = new BotOptions();
-  mcserver: IServerOptions = new ServerOptions();
+  mcserver: IServerOptions & ServerOptions = new ServerOptions();
   webserver: WebServerOptions | null = new WebServerOptions();
   discord: DiscordOptions | null = null;
   antiafk: AntiAFKoptions | null = new AntiAFKoptions();
@@ -31,6 +31,7 @@ export class ServerOptions implements IServerOptions {
   port? = 25565;
   version = '1.12.2';
   maxPlayers? = 1;
+  whitelist?: string[];
 }
 
 export class WebServerOptions {
