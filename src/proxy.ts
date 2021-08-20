@@ -74,7 +74,7 @@ export class Proxy {
       case 'afk':
         if (this.options.antiafk)
           (async () => {
-            while (!(this.conn?.bot as any)?.afk?.enabled) await (this.conn?.bot as any)?.afk?.start();
+            while ((this.conn?.bot as any)?.afk && !(this.conn?.bot as any)?.afk?.enabled) await (this.conn?.bot as any)?.afk?.start();
           })();
         break;
       case 'reconnecting':
