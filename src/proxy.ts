@@ -175,10 +175,11 @@ async function onServerLogin(this: Proxy, client: Client) {
   if (this.options.mcserver['online-mode'] && client.uuid !== this.conn?.bot._client.uuid) {
     return client.end('whitelist is enabled, make sure you are using the correct account.');
   }
-  if (this.state == 'reconnecting') {
-    this.state = 'auth';
-    await new Promise<void>((res) => this.conn?.bot.once('login', res));
-  } else if (!this.conn?.bot?.entity?.id) {
+  // if (this.state == 'reconnecting') {
+  //   this.state = 'auth';
+  //   await new Promise<void>((res) => this.conn?.bot.once('login', res));
+  // } else
+  if (!this.conn?.bot?.entity?.id) {
     return client.end(`not connected yet...\ncurrent state: '${this.state}'`);
   }
   this.conn?.sendPackets(client);
