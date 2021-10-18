@@ -65,7 +65,7 @@ export class Proxy {
             if ((this.conn?.bot as any)?.afk?.chat) (this.conn?.bot as any).afk.chat = function () {};
             if (!this.conn?.pclient) await (this.conn?.bot as any)?.afk?.start();
           });
-        this.conn.bot.on('login', () => (this.state = 'queue'));
+        this.conn.bot.on('login', () => {this.state = 'queue'});
         this.conn.bot._client.on('end', () => (this.state = this.options.extra?.reconnect ? 'reconnecting' : 'idle'));
         this.conn.bot._client.on('error', () => (this.state = this.options.extra?.reconnect ? 'reconnecting' : 'idle'));
         this.conn.bot._client.on('packet', onClientPacket.bind(this));
