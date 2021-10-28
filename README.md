@@ -86,7 +86,7 @@ Please optain all required items
 1. Read the code to ensure I'm not stealing your credentials. I'm not, but you shouldn't take my word for it. If you don't know how to read it, downloading stuff off the internet and giving it your password is probably a bad idea anyway.
 2. Run `npm start`
 3. Follow the instructions on screen to setup.
-4. Refer to [Commands](##commands) on how to use 2b2wTS from the console. Otherwise keep on reading for the web interface.
+4. Refer to [Commands](#commands) on how to use 2b2wTS from the console. Otherwise keep on reading for the web interface.
 5. Now open a browser and navigate to http://localhost: your web port here (default 80).
 6. Press the "Start queuing" button. The queue position indicator auto-updates, but sometimes it takes a while to start counting (like 1 min).
 7. Once the queue reaches a low number, connect to the Minecraft server at address `localhost`.
