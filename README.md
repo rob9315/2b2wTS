@@ -1,3 +1,5 @@
+<!-- Logo And Title -->
+
 <p align="center">
   <a href="https://github.com/rob9315/2b2wTSr" title="2Bored2Wait TS">
     <img src="logo.png" width="80px" alt="2Bored2Wait TS"/>
@@ -7,11 +9,13 @@
 <p align="center">A proxy to wait out 2b2t.org's way too long queue. All made in TyperScript!</p>
 
 <!-- Badges -->
-[![contributors]][contributors-url]
-[![stars]][stars-url]
-[![issues]][issues-url]
-[![forks]][forks-url]
-[![discord]][discord-url]
+
+<p align="center">
+  <a href="https://github.com/rob9315/2b2wTS/releases"><img alt="2b2wTS Version" src="https://img.shields.io/github/package-json/v/Rob9315/2b2wts?style=for-the-badge"/></a>
+  <a href="https://github.com/rob9315/2b2wTS/issues"><img alt="Issues Counter" src="https://img.shields.io/github/issues/rob9315/2b2wts?style=for-the-badge"/></a>
+  <a href="https://discord.gg/9ZrXZp7nVj"><img alt="Discord Server" src="https://img.shields.io/badge/dynamic/json?label=Discord&color=7289da&query=%24.presence_count&url=https%3A%2F%2Fdiscordapp.com%2Fapi%2Fguilds%2F879482948099919903%2Fwidget.json&style=for-the-badge"/></a>
+  </a>
+</p>
 
 
 
@@ -159,16 +163,4 @@ Distributed under the GPL-3.0 License. See [this](LICENSE) for more information.
 
 - Run `npm test` to run test.js
 
-<!-- MARKDOWN LINKS & IMAGES -->
-<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 
-[contributors]: https://img.shields.io/github/contributors/themoonisacheese/2bored2wait.svg?style=for-the-badge&color=3e961e
-[contributors-url]: https://github.com/themoonisacheese/2bored2wait/graphs/contributors
-[stars]: https://img.shields.io/github/stars/themoonisacheese/2bored2wait.svg?style=for-the-badge&color=yellow
-[stars-url]: https://github.com/themoonisacheese/2bored2wait/stargazers
-[issues]: https://img.shields.io/github/issues-raw/themoonisacheese/2bored2wait.svg?label=issues&style=for-the-badge&color=orange
-[issues-url]: https://github.com/themoonisacheese/2bored2wait/issues
-[forks]: https://img.shields.io/github/forks/themoonisacheese/2bored2wait.svg?style=for-the-badge
-[forks-url]: https://github.com/themoonisacheese/2bored2wait/network/members
-[discord]: https://img.shields.io/badge/dynamic/json?label=Discord&color=7289da&query=%24.presence_count&url=https%3A%2F%2Fdiscordapp.com%2Fapi%2Fguilds%2F879482948099919903%2Fwidget.json&style=for-the-badge
-[discord-url]: https://discord.gg/9ZrXZp7nVj
