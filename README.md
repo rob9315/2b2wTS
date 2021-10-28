@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="https://github.com/rob9315/2b2wTSr" title="2Bored2Wait TS">
-    <img src="logo.png" width="80px" alt="2Bored2Wait TS"/>
+    <img src="assets/logo.png" width="80px" alt="2Bored2Wait TS"/>
   </a>
 </p>
 <h1 align="center">2Bored2Wait TyperScript</h1>
