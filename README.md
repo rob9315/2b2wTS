@@ -1,3 +1,5 @@
+# This is in beta and is still being developed, all things described in this readme may not be final!
+
 <!-- Logo And Title -->
 
 <p align="center">
@@ -18,17 +20,8 @@
 </p>
 
 
-
-### 2bored2wait
-
-A proxy to wait out 2b2t.org's way too long queue. Includes a small webserver a REST-like API for external control
-
-[Report Bug](https://github.com/themoonisacheese/2bored2wait/issues) | [Request Feature](https://github.com/themoonisacheese/2bored2wait/issues)
-
-</div>
-
 <!-- TABLE OF CONTENTS -->
-<details open="open">
+<details>
 <summary>Table of Contents</summary><p>
 
 1. [About The Project](#about-the-project)
@@ -49,9 +42,7 @@ A proxy to wait out 2b2t.org's way too long queue. Includes a small webserver a 
 
 ## About The Project
 
-A proxy to wait out 2b2t.org's way too long queue.  
-Please Note that because of security reasons this tool doesn't auto-update! Also 2b2w does not show ETA from 2b2t.  
-The ETA is calculated based on position in the queue. This results in better ETA most of the time.
+This is a rewrite in TS of the very popular 2bored2wait project. This can be used to wait out the long 2b2t.org queue without you having to login to the server! It can calculate how much time is left and it has a functional AntiAFK system! This proxy server is controlable through the webserver (that it hosts locally), the console, and the discord bot. A full list of commands is under [How to use](#how-to-use)
 
 ### Built With
 
