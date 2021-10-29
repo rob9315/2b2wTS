@@ -94,10 +94,8 @@ Please optain all required items
 All commands can be used through discord or simply typed in the console window.
 
 - `start` will start the queue. It takes between 15-30 seconds for the bot to update with the queue position.
-- `start 14:00` will start at 2pm.
-- `play 8:00` will try to calculate the right time to join so you can play at 8:00
-- `update` will send an update to the current channel with your position and ETA.
 - `stop` will stop the queue.
+- `quit` or `exit` will close the application
 
 <!-- CONTRIBUTING -->
 
