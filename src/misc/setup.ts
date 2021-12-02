@@ -61,6 +61,11 @@ export async function setup(config?: ProxyOptions) {
   (defaultOptions.antiafk as any).actions = [];
   config = merge(defaultOptions, config ?? {});
   displayObject(config.mcclient, config.mcclient.password);
+  if (b('Do you want to basic setup?', JSON.stringify(config.mcclient) == JSON.stringify(allDefaults.mcclient))) {
+    config.mcclient.username = q('Please enter your minecraft email (or username if offline)', config.mcclient.username ?? 'user@example.com');
+    config.mcclient.password = config.mcclient.username.match(/.+@.+\..+/) ? q('Please enter your minecraft password', config.mcclient.password ?? 'password', undefined, true) : undefined;
+    config.mcclient.auth = config.mcclient.username.match(/.+@.+\..+/) ? (q('Which kind of account is this ("mojang" or "microsoft")', config.mcclient.auth ?? 'mojang') === 'microsoft' ? 'microsoft' : 'mojang') : undefined;
+  } else {
   if (b('Do you want to edit the mcclient/user account options?', JSON.stringify(config.mcclient) == JSON.stringify(allDefaults.mcclient))) {
     config.mcclient.username = q('Please enter your minecraft email (or username if offline)', config.mcclient.username ?? 'user@example.com');
     config.mcclient.password = config.mcclient.username.match(/.+@.+\..+/) ? q('Please enter your minecraft password', config.mcclient.password ?? 'password', undefined, true) : undefined;
@@ -178,6 +183,7 @@ export async function setup(config?: ProxyOptions) {
       expandQueueData: b('Do you want to expand the Queue Data? Can improve ETA accuracy.', !!config.extra?.expandQueueData ?? allDefaults.extra?.expandQueueData),
       //TODO add more
     };
+  };
   config.extensions = undefined;
   displayObject(config, config.mcclient.password, config.discord?.token);
   let diff = cfgutil.diffDeep(new ProxyOptions(), config);
