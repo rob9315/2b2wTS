@@ -65,7 +65,24 @@ export async function setup(config?: ProxyOptions) {
     config.mcclient.username = q('Please enter your minecraft email (or username if offline)', config.mcclient.username ?? 'user@example.com');
     config.mcclient.password = config.mcclient.username.match(/.+@.+\..+/) ? q('Please enter your minecraft password', config.mcclient.password ?? 'password', undefined, true) : undefined;
     config.mcclient.auth = config.mcclient.username.match(/.+@.+\..+/) ? (q('Which kind of account is this ("mojang" or "microsoft")', config.mcclient.auth ?? 'mojang') === 'microsoft' ? 'microsoft' : 'mojang') : undefined;
+    config.discord = b('Do you want to use the discord bot?', !!config.discord ?? !!allDefaults.discord)
+      ? {
+          token: q('Enter your discord bot Token. (more information on how to get one at https://github.com/rob9315/2b2wts/blob/master/README.md)', config.discord?.token ?? '', undefined, 15),
+          status: b('Do you want the status of the discord bot to be set to the current queue progress?', !!(config.discord?.status ?? allDefaults.discord?.status)),
+          commands: b('Do you want the bot to react to commands?', !!(config.discord?.commands ?? allDefaults.discord?.commands))
+            ? {
+                prefix: q('Please enter a prefix, can also be blank', config.discord?.commands?.prefix ?? (allDefaults.discord?.commands?.prefix as string), true),
+                allowedIds: undefinedIfNone(
+                  q('Enter the whitelisted discord user ids. Separate them with a comma or leave blank for no whitelist. (more information at https://github.com/rob9315/2b2wts/blob/master/README.md)', String(config.discord?.commands?.allowedIds ?? ''), true)
+                    .replace(' ', '')
+                    .split(',')
+                ),
+              }
+            : undefined,
+        }
+      : null;
   } else {
+  displayObject(config.mcclient, config.mcclient.password);
   if (b('Do you want to edit the mcclient/user account options?', JSON.stringify(config.mcclient) == JSON.stringify(allDefaults.mcclient))) {
     config.mcclient.username = q('Please enter your minecraft email (or username if offline)', config.mcclient.username ?? 'user@example.com');
     config.mcclient.password = config.mcclient.username.match(/.+@.+\..+/) ? q('Please enter your minecraft password', config.mcclient.password ?? 'password', undefined, true) : undefined;
