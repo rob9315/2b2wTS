@@ -66,8 +66,8 @@ export class Proxy {
             if (!this.conn?.pclient) await (this.conn?.bot as any)?.afk?.start();
           });
         this.conn.bot.on('login', () => {this.state = 'queue'});
-        this.conn.bot._client.on('end', () => (this.state = this.options.extra?.reconnect ? 'reconnecting' : 'idle'));
-        this.conn.bot._client.on('error', () => (this.state = this.options.extra?.reconnect ? 'reconnecting' : 'idle'));
+        this.conn.bot._client.on('end', () => {this.state = this.options.extra?.reconnect ? 'reconnecting' : 'idle'});
+        this.conn.bot._client.on('error', () => {this.state = this.options.extra?.reconnect ? 'reconnecting' : 'idle'});
         this.conn.bot._client.on('packet', onClientPacket.bind(this));
         break;
       case 'afk':
@@ -183,7 +183,7 @@ async function onServerLogin(this: Proxy, client: Client) {
   if (this.state == 'afk') this.state = 'connected';
   this.conn?.sendPackets(client);
   this.conn?.link(client);
-  client.on('end', () => (this.state == 'queue' ? undefined : (this.state = 'afk')));
+  client.on('end', () => {this.state == 'queue' ? undefined : (this.state = 'afk')});
 }
 
 export function parseChatMessage(data: { message: string }) {
