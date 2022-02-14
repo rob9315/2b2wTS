@@ -3,12 +3,12 @@
 <!-- Logo And Title -->
 
 <p align="center">
-  <a href="https://github.com/rob9315/2b2wTSr" title="2Bored2Wait TS">
-    <img src="assets/logo.png" width="80px" alt="2Bored2Wait TS"/>
+  <a href="https://github.com/rob9315/2b2wTS" title="2w2wTS">
+    <img src="assets/logo.png" width="80px" alt="2b2wTS"/>
   </a>
 </p>
-<h1 align="center">2Bored2Wait TyperScript</h1>
-<p align="center">A proxy to wait out 2b2t.org's way too long queue. All made in TyperScript!</p>
+<h1 align="center">2bored2wait TypeScript</h1>
+<p align="center">A proxy to wait out 2b2t.org's way too long queue. All made in TypeScript!</p>
 
 <!-- Badges -->
 
