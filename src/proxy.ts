@@ -68,6 +68,8 @@ export class Proxy {
         this.conn.bot.on('login', () => {this.state = 'queue'});
         this.conn.bot._client.on('end', () => {this.state = this.options.extra?.reconnect ? 'reconnecting' : 'idle'});
         this.conn.bot._client.on('error', () => {this.state = this.options.extra?.reconnect ? 'reconnecting' : 'idle'});
+        this.conn.bot._client.on('kick_disconnect', (data: any) => console.error('Kicked with reason', data.reason))
+        this.conn.bot._client.on('disconnect', (data: any) => console.error('Kicked with reason', data.reason))
         this.conn.bot._client.on('packet', onClientPacket.bind(this));
         break;
       case 'afk':
