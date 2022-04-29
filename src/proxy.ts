@@ -139,8 +139,8 @@ export class Proxy {
     if (this.state === 'queue' && typeof this.getqueue == 'object') {
       let { position, eta, length } = this.getqueue,
         strTime = eta ? `${Math.floor(eta / 3600)}:`.padStart(3, '0') + `${Math.floor((eta / 60) % 60)}`.padStart(2, '0') : '',
-        strPos = `${position}`.padStart(3) + length ? '/' + `${length}`.padStart(3) : '',
-        str = `Position: ${strPos}` + strTime ? `ETA: ${strTime}h` : '';
+        strPos = `${position}`.padStart(3) + (length ? '/' + `${length}`.padStart(3) : ''),
+        str = `Position: ${strPos} ` + (strTime ? `ETA: ${strTime}h` : '');
       this.server.motd = str;
       console.log(str);
     } else {
