@@ -56,7 +56,7 @@ To get a local copy up and running follow these simple steps.
 
 ## Prerequisites
 
-Please optain all required items
+Please obtain all required items
 
 - A discord bot (optional) ([detailed instructions](https://discordpy.readthedocs.io/en/stable/discord.html))
 - Node 16 [Node Downloads](https://nodejs.org/)
